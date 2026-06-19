@@ -16,7 +16,7 @@ ca-ocean-monitoring-map/
 │   ├── build_combine_map.R        # Combine all layers → Master_Inventory GeoJSONs
 │   └── build_gap_layer.R          # Generate monitoring gap hex cells
 ├── Monitoring_Outputs/
-│   └── index.html                 # Interactive map — edit in place here
+│   └── index.html                 # Interactive map 
 ├── README.md
 └── .gitignore
 ```
@@ -29,7 +29,7 @@ Running the R scripts populates `Monitoring_Outputs/` alongside `index.html`:
 
 ```
 Monitoring_Outputs/
-├── index.html                          ← Interactive map (edit in place)
+├── index.html                          ← Interactive map 
 ├── Master_Inventory_1km.geojson.gz
 ├── Master_Inventory_3km.geojson.gz
 ├── Master_Inventory_5km.geojson.gz
