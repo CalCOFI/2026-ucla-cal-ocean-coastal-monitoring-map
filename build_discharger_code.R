@@ -1,5 +1,5 @@
 ###################################################################################
-# build_discharger_layer.R
+# build_discharger_code.R
 #
 # Reads one or more discharger/WWTP monitoring CSVs and outputs a
 # point-marker GeoJSON for use as a separate map layer.
