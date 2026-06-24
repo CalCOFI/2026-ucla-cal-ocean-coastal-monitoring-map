@@ -8,7 +8,9 @@ An interactive Leaflet map of California ocean and coastal monitoring programs w
 
 ```
 cal-ocean-coastal-monitoring-map/
-├── R/
+├── .github/workflows/
+│   └── pages.yml                  # Auto-deploy web/ to GitHub Pages on push to main
+├── R/                             # build pipeline (inputs, not served)
 │   ├── build_program_code.R       # Process one monitoring program → hex GeoJSON
 │   ├── build_discharger_code.R    # Process discharger CSVs → point GeoJSON
 │   ├── build_combine_code.R       # Combine all layers → Master_Inventory GeoJSONs
@@ -17,25 +19,32 @@ cal-ocean-coastal-monitoring-map/
 │   └── CA_Wind.shp                # BOEM wind energy area shapefile (+ sidecar files)
 ├── ca_state/
 │   └── CA_State.shp               # CA boundary shapefile (+ sidecar files)
-├── Dischargers/
-│   └── Dischargers.geojson
 ├── Attribute_Table.csv
-├── CA_Wind_WEA.geojson
-├── CHIS_polygons.geojson
-├── California_MPA_polygons.geojson
-├── Master_Inventory_1km.geojson.gz
-├── Master_Inventory_3km.geojson.gz
-├── Master_Inventory_5km.geojson.gz
-├── Master_WEA_1km.geojson
-├── Master_WEA_3km.geojson
-├── Master_WEA_5km.geojson
-├── monitoring_gaps.geojson
-├── gap_stats.json
-├── transects.csv
-├── gebco_compressed.tif           ← Download separately (see Prerequisites)
-├── index.html                     # Interactive map
+├── web/                           # ← published static site (served root)
+│   ├── index.html                 # Interactive map
+│   ├── Dischargers/
+│   │   └── Dischargers.geojson
+│   ├── CHIS/
+│   │   └── CHIS_polygons.geojson
+│   ├── CA_Wind_WEA.geojson
+│   ├── California_MPA_polygons.geojson
+│   ├── Master_Inventory_1km.geojson.gz
+│   ├── Master_Inventory_3km.geojson.gz
+│   ├── Master_Inventory_5km.geojson.gz
+│   ├── Master_WEA_1km.geojson
+│   ├── Master_WEA_3km.geojson
+│   ├── Master_WEA_5km.geojson
+│   ├── monitoring_gaps.geojson
+│   ├── gap_stats.json
+│   ├── transects.csv
+│   └── gebco_compressed.tif       ← Download separately (see Prerequisites)
 └── README.md
 ```
+
+All runtime data the map fetches lives in `web/` alongside `index.html`, and every fetch
+in `index.html` is **relative** (no leading `/`), so the site is portable to any URL
+subpath. Build scripts (`R/`) and source shapefiles (`WEA/`, `ca_state/`) stay at the
+repo root as build inputs and are not deployed.
 
 ---
 
@@ -68,14 +77,30 @@ Run `build_combine_code.R`. Outputs `Master_Inventory_Xkm.geojson.gz` (one per r
 ### Step 4 — Build gap layer (optional)
 Run `build_gaps_code.R` to generate `monitoring_gaps.geojson` and `gap_stats.json`.
 
-### Step 5 — Serve the map
-Open the repo folder in VS Code and launch with Live Server, or use Python:
+The build scripts write their outputs into `web/` (the published folder). When adding a
+new program/discharger/gap layer, regenerate the affected files into `web/`.
+
+### Step 5 — Serve the map locally
+Serve the `web/` folder with any static server:
 
 ```bash
-cd path/to/cal-ocean-coastal-monitoring-map
+cd path/to/cal-ocean-coastal-monitoring-map/web
 python -m http.server 8000
 # Open http://localhost:8000
 ```
+
+---
+
+## Hosting
+
+This repo is published to GitHub Pages and served under the CalCOFI org domain at:
+
+**https://calcofi.io/2026-ucla-cal-ocean-coastal-monitoring-map/**
+
+Deployment is automatic via `.github/workflows/pages.yml`, which uploads the `web/`
+folder as the Pages artifact on every push to `main` (Pages source = "GitHub Actions").
+Because all data fetches are relative, the same `web/` folder also works unchanged at
+`http://localhost:8000` or under any other subpath.
 
 ---
 
