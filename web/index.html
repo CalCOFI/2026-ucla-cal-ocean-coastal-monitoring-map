@@ -10,7 +10,8 @@
   // hostname guard: keeps local previews and forks out of the property,
   // without depending on a build-system flag (these sites are built five
   // different ways).
-  window.__CC_GA = location.hostname.endsWith("calcofi.io");
+  window.__CC_GA = location.hostname.endsWith("calcofi.io")
+                   && !navigator.webdriver;   // skip Playwright/Puppeteer/shot-scraper
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0HVK8TDMCF"></script>
 <script>
