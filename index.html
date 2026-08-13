@@ -773,7 +773,7 @@
 
   <div style="border-top:1px solid #e3e7eb;padding-top:14px;margin-top:10px;">
 
-    <div style="display:grid;grid-template-columns:1.6fr 0.85fr;gap:18px;margin-bottom:8px;align-items:start;">
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-bottom:8px;align-items:start;">
 
       <!-- LEFT -->
       <div>
@@ -823,16 +823,6 @@
         <div style="font-size:14px;line-height:1.5;color:#444;margin-bottom:10px;">
           <b style="color:#1a3a5c; font-weight:715;">Transects</b><br>
           Ship survey track lines for tow, trawl, acoustic, and net sampling cruises.
-        </div>
-        <hr style="border:none;border-top:1px solid #d7dee6;margin:8px 0;">
-        <div style="font-size:14px;line-height:1.5;color:#444;margin-bottom:10px;">
-          <b style="color:#1a3a5c; font-weight:715;">Bathymetry</b><br>
-          GEBCO 2025 seafloor depth by zone (shelf, mesopelagic, deep ocean).
-        </div>
-        <hr style="border:none;border-top:1px solid #d7dee6;margin:8px 0;">
-        <div style="font-size:14px;line-height:1.5;color:#444;margin-bottom:10px;">
-          <b style="color:#1a3a5c; font-weight:715;">Monitoring Gaps</b><br>
-          Hex cells within the 12 nmi coastal buffer with no known monitoring coverage.
         </div>
         <hr style="border:none;border-top:1px solid #d7dee6;margin:8px 0;">
         <div style="font-size:14px;line-height:1.5;color:#444;margin-bottom:10px;">
@@ -1491,7 +1481,7 @@ function makeBeachWatchPopup(p) {
 function loadBeachWatch() {
   const statusEl = document.getElementById('beachwatch-status');
   statusEl.textContent = 'Loading…';
-  fetch('BeachWatch/BeachWatch.geojson').then(r=>{
+  fetch('BeachWatch.geojson').then(r=>{
     if(!r.ok) throw new Error('BeachWatch.geojson not found (HTTP '+r.status+')');
     return r.json();
   }).then(data=>{
