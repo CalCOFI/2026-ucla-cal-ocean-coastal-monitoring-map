@@ -1140,37 +1140,37 @@ const DISCHARGER_SOURCES = [
 // Facility type classification — from Water Board feedback: differentiate
 // wastewater treatment, desalination, and power plant discharger facilities.
 const FACILITY_TYPE_LOOKUP = {
-  'A. K. Warren Water Resource Facility':                    'Wastewater Treatment / Water Reclamation Facility',
+  'A. K. Warren Water Resource Facility':                    'Wastewater Treatment',
   'Alamitos Generating Station':                              'Power Plant',
   'Aliso Creek Ocean Outfall':                                'Other',
-  'City of Morro Bay Water Reclamation Facility':             'Wastewater Treatment / Water Reclamation Facility',
+  'City of Morro Bay Water Reclamation Facility':             'Wastewater Treatment',
   'Claude Bud Lewis Carlsbad Desalination Plant':             'Desalination',
   'Diablo Canyon Power Plant':                                'Power Plant',
-  'El Estero Water Resource Center':                          'Wastewater Treatment / Water Reclamation Facility',
-  'Encina Ocean Outfall':                                     'Wastewater Treatment / Water Reclamation Facility',
-  'Goleta Sanitary District Water Resource Recovery Facility':'Wastewater Treatment / Water Reclamation Facility',
+  'El Estero Water Resource Center':                          'Wastewater Treatment',
+  'Encina Ocean Outfall':                                     'Wastewater Treatment',
+  'Goleta Sanitary District Water Resource Recovery Facility':'Wastewater Treatment',
   'Haynes Generating Station':                                'Power Plant',
   'Huntington Beach Generating Station':                      'Power Plant',
-  'La Salina Wastewater Treatment Plant':                     'Wastewater Treatment / Water Reclamation Facility',
-  'Monterey One Water Regional Treatment Plant':              'Wastewater Treatment / Water Reclamation Facility',
-  'Orange County Sanitation District':                        'Wastewater Treatment / Water Reclamation Facility',
-  'Oxnard Water Resource Recovery Facility':                  'Wastewater Treatment / Water Reclamation Facility',
-  'Point Loma Wastewater Treatment Plant':                    'Wastewater Treatment / Water Reclamation Facility',
-  'San Elijo Water Reclamation Facility':                     'Wastewater Treatment / Water Reclamation Facility',
+  'La Salina Wastewater Treatment Plant':                     'Wastewater Treatment',
+  'Monterey One Water Regional Treatment Plant':              'Wastewater Treatment',
+  'Orange County Sanitation District':                        'Wastewater Treatment',
+  'Oxnard Water Resource Recovery Facility':                  'Wastewater Treatment',
+  'Point Loma Wastewater Treatment Plant':                    'Wastewater Treatment',
+  'San Elijo Water Reclamation Facility':                     'Wastewater Treatment',
   'San Juan Creek Ocean Outfall':                             'Other',
-  'Santa Cruz Wastewater Treatment Facility':                 'Wastewater Treatment / Water Reclamation Facility',
-  'South Bay Water Reclamation Plant':                        'Wastewater Treatment / Water Reclamation Facility',
-  'South San Luis Obispo Wastewater Treatment Facility':      'Wastewater Treatment / Water Reclamation Facility',
-  'Terminal Island Water Reclamation Plant':                  'Wastewater Treatment / Water Reclamation Facility',
-  'Ventura Water Reclamation Facility':                       'Wastewater Treatment / Water Reclamation Facility',
-  'Watsonville Wastewater Treatment Facility':                'Wastewater Treatment / Water Reclamation Facility'
+  'Santa Cruz Wastewater Treatment Facility':                 'Wastewater Treatment',
+  'South Bay Water Reclamation Plant':                        'Wastewater Treatment',
+  'South San Luis Obispo Wastewater Treatment Facility':      'Wastewater Treatment',
+  'Terminal Island Water Reclamation Plant':                  'Wastewater Treatment',
+  'Ventura Water Reclamation Facility':                       'Wastewater Treatment',
+  'Watsonville Wastewater Treatment Facility':                'Wastewater Treatment'
 };
 // Unclassified/unverified names default to 'Other' rather than guessing —
 // only names explicitly listed above get a confident Wastewater Treatment/
 // Desalination/Power Plant label.
 function getFacilityType(name) { return FACILITY_TYPE_LOOKUP[name] || 'Other'; }
 
-const FACILITY_TYPES = ['Wastewater Treatment / Water Reclamation Facility', 'Desalination', 'Power Plant', 'Other'];
+const FACILITY_TYPES = ['Wastewater Treatment', 'Desalination', 'Power Plant', 'Other'];
 
 // Marker colors go back to per-facility (not per-type) — Type is used for
 // filtering and the popup's "Facility Type" row, not for map color.
@@ -1672,7 +1672,16 @@ function loadDischargers() {
 
     const typeList = document.getElementById('dtype-checkbox-list');
     FACILITY_TYPES.filter(t=>nameEntries.some(n=>getFacilityType(n)===t)).forEach(type=>{
-      addCheckboxOption('dtype-checkbox-list', type);
+      const count = nameEntries.filter(n=>getFacilityType(n)===type).length;
+      const id = 'chk-dtype-'+type.replace(/[^a-zA-Z0-9]/g,'-');
+      const div = document.createElement('div');
+      div.className = 'param-option'; div.dataset.val = type.toLowerCase();
+      div.innerHTML = `<input type="checkbox" id="${id}" value="${type}" onchange="updateDropdownLabel('dtype')">
+        <label for="${id}" style="cursor:pointer;flex:1;margin:0;display:flex;justify-content:space-between;gap:8px;">
+          <span>${type}</span>
+          <span style="color:#888;font-weight:600;font-size:12px;">${count}</span>
+        </label>`;
+      typeList.appendChild(div);
     });
 
     const existingParams = new Set(), paramEntries = [];
