@@ -1200,6 +1200,7 @@ function buildLegend() {
     document.getElementById('discharger-toggle').checked  ? { id: 'dischargers', label: 'Dischargers' } : null,
     document.getElementById('gaps-toggle').checked        ? { id: 'gaps',        label: 'Gaps' }        : null,
     document.getElementById('wea-toggle').checked ? { id: 'wea', label: 'Wind Energy' } : null,
+    document.getElementById('asbs-toggle').checked ? { id: 'asbs', label: 'ASBS' } : null,
   ].filter(Boolean);
 
   // If active tab no longer exists, fall back to programs
@@ -1404,6 +1405,33 @@ function buildLegend() {
     </div>
   `;
 }
+
+  else if (legendActiveTab === 'asbs') {
+
+    const asbsPrograms = [...new Set(
+      allASBSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+    )].sort();
+
+    if (!window.visibleASBSPrograms) window.visibleASBSPrograms = new Set(asbsPrograms);
+    const allOn = asbsPrograms.every(p => visibleASBSPrograms.has(p));
+
+    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
+      <button onclick="setAllASBSPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#6a4c93':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
+      <button onclick="setAllASBSPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn?'#6a4c93':'#f0f4f8'};color:${!allOn?'white':'#444'};">All Off</button>
+    </div>`;
+
+    asbsPrograms.forEach(prog => {
+      const color = getColor(prog);
+      const visible = visibleASBSPrograms.has(prog);
+      const safe = prog.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      bodyHtml += `<div class="legend-item${visible?'':' hidden-prog'}" onclick="toggleASBSProgram('${safe}',${!visible})">
+        <input type="checkbox" ${visible?'checked':''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="toggleASBSProgram('${safe}',this.checked)">
+        <div class="legend-swatch" style="background:${color};border-color:${color};"></div>
+        <span>${nameOverrides[prog] || programFullNames[prog] || prog}</span></div>`;
+    });
+
+    bodyHtml += `<div style="font-size:11px;color:#888;padding:4px 3px 0 3px;">Monitoring inside SWQPA–ASBS boundaries</div>`;
+  }
 
   const multiClass = tabs.length > 1 ? 'multi-tab' : '';
   const prevScroll = document.getElementById('legend-body') ? document.getElementById('legend-body').scrollTop : 0;
@@ -1842,6 +1870,11 @@ function updateBWCountyLabel() {
 
 function toggleBWCountyPanel() {
   const panel = document.getElementById('bwcounty-panel');
+  // Reparent to <body> once, out of the nested/scrollable Other Layers
+  // dropdown — otherwise its overflow + stacking context can clip or
+  // swallow this nested popup.
+  if (panel.parentElement !== document.body) document.body.appendChild(panel);
+
   const isOpen = panel.style.display === 'block';
   document.querySelectorAll('.dropdown-panel').forEach(p=>{ if(p.id!=='bwcounty-panel') p.style.display='none'; });
   if (isOpen) { panel.style.display = 'none'; return; }
@@ -1850,6 +1883,7 @@ function toggleBWCountyPanel() {
   panel.style.position = 'fixed';
   panel.style.top = (btnRect.bottom + 4) + 'px';
   panel.style.left = btnRect.left + 'px';
+  panel.style.zIndex = '10000';
   panel.style.display = 'block';
 }
 
@@ -2015,6 +2049,10 @@ function loadGaps() {
 
 let asbsLayer = L.layerGroup();
 let asbsLoaded = false;
+let asbsHexLayer = L.layerGroup();
+let asbsHexLoaded = false;
+let allASBSHexFeatures = [];
+let visibleASBSPrograms = new Set();
 
 function makeASBSPopup(p) {
   const rows = `
@@ -2050,17 +2088,89 @@ function loadASBS() {
   });
 }
 
+// ── ASBS hex layer — same "clip the main inventory to just these
+// boundaries" pattern as the WEA hex layer, so you can see monitoring
+// density specifically inside ASBS areas. ──
+function renderASBSHexes() {
+  asbsHexLayer.clearLayers();
+  if (!document.getElementById('asbs-toggle').checked) return;
+
+  const selectedParams = getCheckedValues('param');
+  const selectedEovs   = getCheckedValues('eov');
+
+  let visibleCount = 0;
+  allASBSHexFeatures.forEach(f => {
+    const p = f.properties || {};
+    const prog = normalizeProgram(getProp(p, 'Program Name', 'Program.Name') || 'Unknown');
+    if (!visibleASBSPrograms.has(prog)) return;
+
+    if (selectedParams.length > 0) {
+      const params = getProp(p, 'Parameters', 'parameters');
+      if (!selectedParams.some(sp => params.includes(sp))) return;
+    }
+    if (selectedEovs.length > 0) {
+      const eovGroups = getProp(p, 'EOV Groups', 'EOV.Groups');
+      if (!selectedEovs.some(ev => eovGroups.includes(ev))) return;
+    }
+
+    visibleCount++;
+    if (!programColors[prog]) programColors[prog] = colorList[Object.keys(programColors).length % colorList.length];
+    const color = programColors[prog];
+
+    const layer = L.geoJSON(f, {
+      style: { color: color, weight: 1, fillColor: color, fillOpacity: 0.5, dashArray: '4 3' }
+    });
+    layer.bindPopup(() => buildHexPopup(p), { maxWidth: 400, maxHeight: 520 });
+    layer.on('mouseover', function(){ this.setStyle({ weight: 2.5, fillOpacity: 0.75 }); });
+    layer.on('mouseout',  function(){ this.setStyle({ weight: 1, fillOpacity: 0.5 }); });
+    layer.addTo(asbsHexLayer);
+  });
+
+  const statusEl = document.getElementById('asbs-status');
+  if (statusEl && document.getElementById('asbs-toggle').checked) {
+    statusEl.textContent = visibleCount + ' hex cells inside ASBS';
+  }
+}
+
+function loadASBSHexes(res) {
+  asbsHexLayer.clearLayers();
+  if (!document.getElementById('asbs-toggle').checked) return;
+  loadGzipGeoJSON('Master_ASBS_' + res + '.geojson.gz')
+    .then(data => {
+      allASBSHexFeatures = data.features;
+      const progs = [...new Set(allASBSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown')))];
+      visibleASBSPrograms = new Set(progs);
+      asbsHexLoaded = true;
+      renderASBSHexes();
+      if (document.getElementById('asbs-toggle').checked) {
+        asbsHexLayer.addTo(map);
+        buildLegend();
+      }
+    })
+    .catch(err => console.warn('ASBS hex load failed:', err.message));
+}
+
 function toggleASBS() {
   const on = document.getElementById('asbs-toggle').checked;
   document.getElementById('asbs-desc').style.display = on ? 'block' : 'none';
+  if (on) legendActiveTab = 'asbs';
   if (on) {
     asbsLayer.addTo(map);
     if (!asbsLoaded) loadASBS();
     else document.getElementById('asbs-status').textContent = 'Loaded';
+    if (!asbsHexLoaded) {
+      loadASBSHexes(currentRes);
+    } else {
+      renderASBSHexes();
+      asbsHexLayer.addTo(map);
+    }
   } else {
     asbsLayer.remove();
+    asbsHexLayer.remove();
+    legendActiveTab = 'programs';
     document.getElementById('asbs-status').textContent = 'Hidden';
   }
+  buildLegend();
 }
 
 function toggleGaps() {
@@ -2146,6 +2256,23 @@ function setAllWEAPrograms(on) {
     weaHexLayer.addTo(map);
   }
 
+  buildLegend();
+}
+
+function toggleASBSProgram(name, on) {
+  if (on) visibleASBSPrograms.add(name); else visibleASBSPrograms.delete(name);
+  renderASBSHexes();
+  if (document.getElementById('asbs-toggle').checked) asbsHexLayer.addTo(map);
+  buildLegend();
+}
+
+function setAllASBSPrograms(on) {
+  const asbsPrograms = [...new Set(
+    allASBSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+  )];
+  visibleASBSPrograms = on ? new Set(asbsPrograms) : new Set();
+  renderASBSHexes();
+  if (document.getElementById('asbs-toggle').checked) asbsHexLayer.addTo(map);
   buildLegend();
 }
 
@@ -2509,6 +2636,10 @@ function switchResolution(res) {
         weaHexLoaded = false;
         loadWeaHexes(res);
       }
+    if (document.getElementById('asbs-toggle').checked) {
+        asbsHexLoaded = false;
+        loadASBSHexes(res);
+      }
     return;
   }
 
@@ -2526,6 +2657,11 @@ function switchResolution(res) {
         weaHexLayer.clearLayers();
         weaHexLoaded = false;
         loadWeaHexes(res);
+      }
+      if (document.getElementById('asbs-toggle').checked) {
+        asbsHexLayer.clearLayers();
+        asbsHexLoaded = false;
+        loadASBSHexes(res);
       }
     
       buildLegend();
@@ -2852,7 +2988,10 @@ function updateOtherLayersLabel() {
 document.addEventListener('click', function(e) {
   const btn = document.getElementById('other-layers-btn');
   const panel = document.getElementById('other-layers-panel');
-  if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target)) {
+  const bwPanel = document.getElementById('bwcounty-panel');
+  const bwBtn = document.getElementById('bwcounty-btn');
+  const clickedInBW = (bwPanel && bwPanel.contains(e.target)) || (bwBtn && bwBtn.contains(e.target));
+  if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target) && !clickedInBW) {
     panel.style.display = 'none';
   }
 });
