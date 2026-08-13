@@ -770,6 +770,20 @@
           </div>
         </div>
         <div>
+          <div style="font-size:11px;color:#666;margin-bottom:3px;">Type</div>
+          <div class="dropdown-btn" id="dtype-btn" onclick="toggleDropdown('dtype')" style="min-width:170px;">
+            <span id="dtype-label">All Types</span>
+            <span style="font-size:9px;color:#888;">&#9660;</span>
+          </div>
+          <div class="dropdown-panel" id="dtype-panel">
+            <div class="dropdown-actions">
+              <span onclick="selectAllDropdown('dtype')">Select all</span>
+              <span onclick="clearDropdown('dtype')" style="color:#888;">Clear</span>
+            </div>
+            <div id="dtype-checkbox-list"></div>
+          </div>
+        </div>
+        <div>
           <div style="font-size:11px;color:#666;margin-bottom:3px;">Parameter</div>
           <div class="dropdown-btn" id="dparam-btn" onclick="toggleDropdown('dparam')" style="min-width:220px;">
             <span id="dparam-label" style="overflow:hidden;text-overflow:ellipsis;">All Parameters</span>
@@ -1123,29 +1137,53 @@ const DISCHARGER_SOURCES = [
   { path: 'Dischargers/Dischargers.geojson', label: 'Dischargers', fillColor: '#6a9e9e', borderColor: '#3a6b6b' }
 ];
 
-const DISCHARGER_PALETTE = [
-  { fill: '#6a9e9e', border: '#3a6b6b' },
-  { fill: '#9e7a7a', border: '#6b4a4a' },
-  { fill: '#7a8a9e', border: '#4a5b6e' },
-  { fill: '#7a9e7e', border: '#4a6b4e' },
-  { fill: '#8a7a9e', border: '#5a4b6e' },
-  { fill: '#9e9e8a', border: '#6b6b5a' }
-];
-const dischargerColorMap = {};
-let dischargerPaletteIndex = 0;
-let hiddenDischargers = new Set();
-
-const DISCHARGER_COLOR_OVERRIDES = {
-  'A. K. Warren Water Resource Facility': { fill: '#c0454e', border: '#7a2a2e' },
-  'Haynes Generating Station':            { fill: '#4a7fa5', border: '#2a4f6a' }
+// Facility type classification — from Water Board feedback: differentiate
+// wastewater treatment, desalination, and power plant discharger facilities.
+const FACILITY_TYPE_LOOKUP = {
+  'A. K. Warren Water Resource Facility':                    'Wastewater Treatment',
+  'Alamitos Generating Station':                              'Power Plant',
+  'Aliso Creek Ocean Outfall':                                'Other',
+  'City of Morro Bay Water Reclamation Facility':             'Wastewater Treatment',
+  'Claude Bud Lewis Carlsbad Desalination Plant':             'Desalination',
+  'Diablo Canyon Power Plant':                                'Power Plant',
+  'El Estero Water Resource Center':                          'Wastewater Treatment',
+  'Encina Ocean Outfall':                                     'Wastewater Treatment',
+  'Goleta Sanitary District Water Resource Recovery Facility':'Wastewater Treatment',
+  'Haynes Generating Station':                                'Power Plant',
+  'Huntington Beach Generating Station':                      'Power Plant',
+  'La Salina Wastewater Treatment Plant':                     'Wastewater Treatment',
+  'Monterey One Water Regional Treatment Plant':              'Wastewater Treatment',
+  'Orange County Sanitation District':                        'Wastewater Treatment',
+  'Oxnard Water Resource Recovery Facility':                  'Wastewater Treatment',
+  'Point Loma Wastewater Treatment Plant':                    'Wastewater Treatment',
+  'San Elijo Water Reclamation Facility':                     'Wastewater Treatment',
+  'San Juan Creek Ocean Outfall':                             'Other',
+  'Santa Cruz Wastewater Treatment Facility':                 'Wastewater Treatment',
+  'South Bay Water Reclamation Plant':                        'Wastewater Treatment',
+  'South San Luis Obispo Wastewater Treatment Facility':      'Wastewater Treatment',
+  'Terminal Island Water Reclamation Plant':                  'Wastewater Treatment',
+  'Ventura Water Reclamation Facility':                       'Wastewater Treatment',
+  'Watsonville Wastewater Treatment Facility':                'Wastewater Treatment'
 };
+// Unclassified/unverified names default to 'Other' rather than guessing —
+// only names explicitly listed above get a confident Wastewater Treatment/
+// Desalination/Power Plant label.
+function getFacilityType(name) { return FACILITY_TYPE_LOOKUP[name] || 'Other'; }
+
+const FACILITY_TYPE_COLORS = {
+  'Wastewater Treatment': { fill: '#6a9e9e', border: '#3a6b6b' },
+  'Desalination':         { fill: '#4a7fa5', border: '#2a4f6a' },
+  'Power Plant':          { fill: '#c0454e', border: '#7a2a2e' },
+  'Other':                { fill: '#9a9a8a', border: '#5c5c50' }
+};
+const FACILITY_TYPES = ['Wastewater Treatment', 'Desalination', 'Power Plant', 'Other'];
+
+const dischargerColorMap = {};
+let hiddenDischargers = new Set();
 
 function getDischargerColor(facilityName) {
   if (!dischargerColorMap[facilityName]) {
-    dischargerColorMap[facilityName] = 
-      DISCHARGER_COLOR_OVERRIDES[facilityName] ||
-      DISCHARGER_PALETTE[dischargerPaletteIndex % DISCHARGER_PALETTE.length];
-    if (!DISCHARGER_COLOR_OVERRIDES[facilityName]) dischargerPaletteIndex++;
+    dischargerColorMap[facilityName] = FACILITY_TYPE_COLORS[getFacilityType(facilityName)];
   }
   return dischargerColorMap[facilityName];
 }
@@ -1574,9 +1612,11 @@ function makeDischargerPopup(p) {
   'monitoring_program_per_section','Monitoring_program_per_section',
   'notes','Notes',
   'latitude_dms_as_in_permit','Latitude_dms_as_in_permit',
-  'longitude_dms_as_in_permit','Longitude_dms_as_in_permit', 'Monitoring Program'
+  'longitude_dms_as_in_permit','Longitude_dms_as_in_permit', 'Monitoring Program',
+  'facility_type'
 ]);
   let rows = '<tr class="dp-section-head"><td colspan="2">Station Details</td></tr>';
+  if (valD(p['facility_type'])) rows += drow('Facility Type', valD(p['facility_type']));
   if (valD(p['station_type'])) rows += drow('Station Type', valD(p['station_type']));
   Object.keys(p).filter(k=>!skipAll.has(k)&&valD(p[k])).sort().forEach(k=>{ rows += drow(prettifyKey(k), valD(p[k])); });
   if (valD(p['frequency'])) rows += drow('Frequency', valD(p['frequency']));
@@ -1613,9 +1653,23 @@ function loadDischargers() {
     const existingNames = new Set(), nameEntries = [];
     allDischargerFeatures.forEach(f=>{
       const name = valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name']);
+      if (name) f.properties['facility_type'] = getFacilityType(name);
       if (name&&!existingNames.has(name)) { existingNames.add(name); nameEntries.push(name); }
     });
     nameEntries.sort().forEach(name=>addCheckboxOption('dname-checkbox-list',name));
+
+    const typeList = document.getElementById('dtype-checkbox-list');
+    FACILITY_TYPES.filter(t=>nameEntries.some(n=>getFacilityType(n)===t)).forEach(type=>{
+      const colors = FACILITY_TYPE_COLORS[type];
+      const id = 'chk-dtype-'+type.replace(/[^a-zA-Z0-9]/g,'-');
+      const div = document.createElement('div');
+      div.className = 'param-option'; div.dataset.val = type.toLowerCase();
+      div.innerHTML = `<input type="checkbox" id="${id}" value="${type}" onchange="updateDropdownLabel('dtype')">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colors.fill};border:1.5px solid ${colors.border};flex-shrink:0;margin-top:2px;"></span>
+        <label for="${id}" style="cursor:pointer;flex:1;margin:0;">${type}</label>`;
+      typeList.appendChild(div);
+    });
+
     const existingParams = new Set(), paramEntries = [];
     allDischargerFeatures.forEach(f=>{
       const paramStr = valD(f.properties['parameter'])||valD(f.properties['parameters'])||'';
@@ -1854,6 +1908,8 @@ function toggleDischargers() {
     document.getElementById('dname-label').textContent = 'All Dischargers';
     document.querySelectorAll('#dparam-checkbox-list input').forEach(i=>i.checked=false);
     document.getElementById('dparam-label').textContent = 'All Parameters';
+    document.querySelectorAll('#dtype-checkbox-list input').forEach(i=>i.checked=false);
+    document.getElementById('dtype-label').textContent = 'All Types';
     document.getElementById('discharger-status').textContent='Hidden';
   }
   buildLegend();
@@ -2774,6 +2830,7 @@ const DROPDOWNS = {
   eov:    {btn:'eov-btn',   panel:'eov-panel',   list:'eov-checkbox-list',   search:null,           label:'eov-label',   default:'All'},
   dname:  {btn:'dname-btn', panel:'dname-panel', list:'dname-checkbox-list', search:'dname-search', label:'dname-label', default:'All'},
   dparam: {btn:'dparam-btn',panel:'dparam-panel',list:'dparam-checkbox-list',search:'dparam-search',label:'dparam-label',default:'All'},
+  dtype:  {btn:'dtype-btn', panel:'dtype-panel', list:'dtype-checkbox-list', search:null,           label:'dtype-label', default:'All'},
 };
 
 function toggleOtherLayersPanel() {
@@ -2833,7 +2890,7 @@ function updateDropdownLabel(id) {
   if(checked.length===0) label.textContent=d.default;
   else if(checked.length===1) label.textContent=checked[0].value;
   else label.textContent=checked.length+' selected';
-  if(id==='dname'||id==='dparam') applyDischargerFilters();
+  if(id==='dname'||id==='dparam'||id==='dtype') applyDischargerFilters();
   else applyFilters();
 }
 function selectAllDropdown(id) {
@@ -3055,6 +3112,7 @@ function applyFilters() {
 function applyDischargerFilters() {
   const selectedNames  = getCheckedValues('dname');
   const selectedParams = getCheckedValues('dparam');
+  const selectedTypes  = getCheckedValues('dtype');
 
   if (selectedNames.length > 0) {
     hiddenDischargers = new Set(
@@ -3068,6 +3126,7 @@ function applyDischargerFilters() {
     const name = valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name'])||'';
     const paramStr = valD(f.properties['parameter'])||valD(f.properties['parameters'])||'';
     if(selectedNames.length>0 && !selectedNames.includes(name)) return false;
+    if(selectedTypes.length>0 && !selectedTypes.includes(getFacilityType(name))) return false;
     if(selectedParams.length>0 && !selectedParams.some(p=>
       paramStr.split(';').map(s=>s.trim()).some(raw => dparamCanonical(raw) === p)
     )) return false;
