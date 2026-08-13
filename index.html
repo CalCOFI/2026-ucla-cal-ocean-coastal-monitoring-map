@@ -860,7 +860,7 @@
           <span>SWQPA–ASBS</span>
         </label>
         <div id="asbs-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
-          State Water Quality Protection Areas designated for their exceptional marine life and habitat.
+          State Water Quality Protection Areas – Areas of Special Biological Significance.
         </div>
         <div class="toggle-sub" id="asbs-status">Not loaded</div>
       </div>
@@ -1140,50 +1140,62 @@ const DISCHARGER_SOURCES = [
 // Facility type classification — from Water Board feedback: differentiate
 // wastewater treatment, desalination, and power plant discharger facilities.
 const FACILITY_TYPE_LOOKUP = {
-  'A. K. Warren Water Resource Facility':                    'Wastewater Treatment',
+  'A. K. Warren Water Resource Facility':                    'Wastewater Treatment / Water Reclamation Facility',
   'Alamitos Generating Station':                              'Power Plant',
   'Aliso Creek Ocean Outfall':                                'Other',
-  'City of Morro Bay Water Reclamation Facility':             'Wastewater Treatment',
+  'City of Morro Bay Water Reclamation Facility':             'Wastewater Treatment / Water Reclamation Facility',
   'Claude Bud Lewis Carlsbad Desalination Plant':             'Desalination',
   'Diablo Canyon Power Plant':                                'Power Plant',
-  'El Estero Water Resource Center':                          'Wastewater Treatment',
-  'Encina Ocean Outfall':                                     'Wastewater Treatment',
-  'Goleta Sanitary District Water Resource Recovery Facility':'Wastewater Treatment',
+  'El Estero Water Resource Center':                          'Wastewater Treatment / Water Reclamation Facility',
+  'Encina Ocean Outfall':                                     'Wastewater Treatment / Water Reclamation Facility',
+  'Goleta Sanitary District Water Resource Recovery Facility':'Wastewater Treatment / Water Reclamation Facility',
   'Haynes Generating Station':                                'Power Plant',
   'Huntington Beach Generating Station':                      'Power Plant',
-  'La Salina Wastewater Treatment Plant':                     'Wastewater Treatment',
-  'Monterey One Water Regional Treatment Plant':              'Wastewater Treatment',
-  'Orange County Sanitation District':                        'Wastewater Treatment',
-  'Oxnard Water Resource Recovery Facility':                  'Wastewater Treatment',
-  'Point Loma Wastewater Treatment Plant':                    'Wastewater Treatment',
-  'San Elijo Water Reclamation Facility':                     'Wastewater Treatment',
+  'La Salina Wastewater Treatment Plant':                     'Wastewater Treatment / Water Reclamation Facility',
+  'Monterey One Water Regional Treatment Plant':              'Wastewater Treatment / Water Reclamation Facility',
+  'Orange County Sanitation District':                        'Wastewater Treatment / Water Reclamation Facility',
+  'Oxnard Water Resource Recovery Facility':                  'Wastewater Treatment / Water Reclamation Facility',
+  'Point Loma Wastewater Treatment Plant':                    'Wastewater Treatment / Water Reclamation Facility',
+  'San Elijo Water Reclamation Facility':                     'Wastewater Treatment / Water Reclamation Facility',
   'San Juan Creek Ocean Outfall':                             'Other',
-  'Santa Cruz Wastewater Treatment Facility':                 'Wastewater Treatment',
-  'South Bay Water Reclamation Plant':                        'Wastewater Treatment',
-  'South San Luis Obispo Wastewater Treatment Facility':      'Wastewater Treatment',
-  'Terminal Island Water Reclamation Plant':                  'Wastewater Treatment',
-  'Ventura Water Reclamation Facility':                       'Wastewater Treatment',
-  'Watsonville Wastewater Treatment Facility':                'Wastewater Treatment'
+  'Santa Cruz Wastewater Treatment Facility':                 'Wastewater Treatment / Water Reclamation Facility',
+  'South Bay Water Reclamation Plant':                        'Wastewater Treatment / Water Reclamation Facility',
+  'South San Luis Obispo Wastewater Treatment Facility':      'Wastewater Treatment / Water Reclamation Facility',
+  'Terminal Island Water Reclamation Plant':                  'Wastewater Treatment / Water Reclamation Facility',
+  'Ventura Water Reclamation Facility':                       'Wastewater Treatment / Water Reclamation Facility',
+  'Watsonville Wastewater Treatment Facility':                'Wastewater Treatment / Water Reclamation Facility'
 };
 // Unclassified/unverified names default to 'Other' rather than guessing —
 // only names explicitly listed above get a confident Wastewater Treatment/
 // Desalination/Power Plant label.
 function getFacilityType(name) { return FACILITY_TYPE_LOOKUP[name] || 'Other'; }
 
-const FACILITY_TYPE_COLORS = {
-  'Wastewater Treatment': { fill: '#6a9e9e', border: '#3a6b6b' },
-  'Desalination':         { fill: '#4a7fa5', border: '#2a4f6a' },
-  'Power Plant':          { fill: '#c0454e', border: '#7a2a2e' },
-  'Other':                { fill: '#9a9a8a', border: '#5c5c50' }
-};
-const FACILITY_TYPES = ['Wastewater Treatment', 'Desalination', 'Power Plant', 'Other'];
+const FACILITY_TYPES = ['Wastewater Treatment / Water Reclamation Facility', 'Desalination', 'Power Plant', 'Other'];
 
+// Marker colors go back to per-facility (not per-type) — Type is used for
+// filtering and the popup's "Facility Type" row, not for map color.
+const DISCHARGER_PALETTE = [
+  { fill: '#6a9e9e', border: '#3a6b6b' },
+  { fill: '#9e7a7a', border: '#6b4a4a' },
+  { fill: '#7a8a9e', border: '#4a5b6e' },
+  { fill: '#7a9e7e', border: '#4a6b4e' },
+  { fill: '#8a7a9e', border: '#5a4b6e' },
+  { fill: '#9e9e8a', border: '#6b6b5a' }
+];
+const DISCHARGER_COLOR_OVERRIDES = {
+  'A. K. Warren Water Resource Facility': { fill: '#c0454e', border: '#7a2a2e' },
+  'Haynes Generating Station':            { fill: '#4a7fa5', border: '#2a4f6a' }
+};
 const dischargerColorMap = {};
+let dischargerPaletteIndex = 0;
 let hiddenDischargers = new Set();
 
 function getDischargerColor(facilityName) {
   if (!dischargerColorMap[facilityName]) {
-    dischargerColorMap[facilityName] = FACILITY_TYPE_COLORS[getFacilityType(facilityName)];
+    dischargerColorMap[facilityName] =
+      DISCHARGER_COLOR_OVERRIDES[facilityName] ||
+      DISCHARGER_PALETTE[dischargerPaletteIndex % DISCHARGER_PALETTE.length];
+    if (!DISCHARGER_COLOR_OVERRIDES[facilityName]) dischargerPaletteIndex++;
   }
   return dischargerColorMap[facilityName];
 }
@@ -1660,14 +1672,7 @@ function loadDischargers() {
 
     const typeList = document.getElementById('dtype-checkbox-list');
     FACILITY_TYPES.filter(t=>nameEntries.some(n=>getFacilityType(n)===t)).forEach(type=>{
-      const colors = FACILITY_TYPE_COLORS[type];
-      const id = 'chk-dtype-'+type.replace(/[^a-zA-Z0-9]/g,'-');
-      const div = document.createElement('div');
-      div.className = 'param-option'; div.dataset.val = type.toLowerCase();
-      div.innerHTML = `<input type="checkbox" id="${id}" value="${type}" onchange="updateDropdownLabel('dtype')">
-        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colors.fill};border:1.5px solid ${colors.border};flex-shrink:0;margin-top:2px;"></span>
-        <label for="${id}" style="cursor:pointer;flex:1;margin:0;">${type}</label>`;
-      typeList.appendChild(div);
+      addCheckboxOption('dtype-checkbox-list', type);
     });
 
     const existingParams = new Set(), paramEntries = [];
