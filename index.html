@@ -1948,16 +1948,6 @@ let asbsHexLoaded = false;
 let allASBSHexFeatures = [];
 let visibleASBSPrograms = new Set();
 
-function makeASBSPopup(p) {
-  const rows = `
-    <tr><td>County</td><td>${p.COUNTY||'—'}</td></tr>
-    <tr><td>Acres</td><td>${p.ACRES ? Number(p.ACRES).toLocaleString() : '—'}</td></tr>
-    <tr><td>Year Designated</td><td>${p.YEAR_DESIGNATED||'—'}</td></tr>
-    <tr><td>SWRCB Resolution</td><td>${p.RESOLUTION||'—'}</td></tr>
-  `;
-  return `<div class="asbs-header"><div class="asbs-title">${p.SWQPANAME||'ASBS'}</div><div class="asbs-subtitle">State Water Quality Protection Area — ASBS #${p.SWQPA_NUM||'—'}</div></div><table class="asbs-table">${rows}</table>`;
-}
-
 function loadASBS() {
   const statusEl = document.getElementById('asbs-status');
   statusEl.textContent = 'Loading…';
@@ -1966,13 +1956,14 @@ function loadASBS() {
     return r.json();
   }).then(data=>{
     asbsLoaded = true;
+    if (!map.getPane('asbsPane')) {
+      map.createPane('asbsPane');
+      map.getPane('asbsPane').style.zIndex = 300;
+      map.getPane('asbsPane').style.pointerEvents = 'none';
+    }
     L.geoJSON(data, {
-      style: { color: '#6a4c93', weight: 1.5, dashArray: '4 3', fillColor: '#9b7fc7', fillOpacity: 0.15 },
-      onEachFeature: (f, lyr) => {
-        lyr.bindPopup(makeASBSPopup(f.properties), {maxWidth:380, maxHeight:440});
-        lyr.on('mouseover', function(){ this.setStyle({ fillOpacity: 0.35, weight: 2.5 }); });
-        lyr.on('mouseout',  function(){ this.setStyle({ fillOpacity: 0.15, weight: 1.5 }); });
-      }
+      pane: 'asbsPane',
+      style: { color: '#6a4c93', weight: 1.5, dashArray: '4 3', fillColor: '#9b7fc7', fillOpacity: 0.15 }
     }).addTo(asbsLayer);
     statusEl.textContent = data.features.length + ' areas';
   }).catch(err=>{
@@ -2759,7 +2750,7 @@ const nameOverrides = {
   'NOAA IWCPS':       'NOAA Integrated West Coast Protected Species Survey',
   'NOAA RREAS':       'NOAA Rockfish Recruitment and Ecosystem Assessment Survey',
   'SCCWRP':           'Southern California Coastal Water Research Project',
-  'SWRCB':            'State Water Resources Control Board – Beach Report Card',
+  'SWRCB':            'State Water Resources Control Board – BeachWatch Program',
   'NOAA SWFSC-CalCOFI':       'NOAA Southwest Fisheries Science Center-California Cooperative Oceanic Fisheries Investigations',
   'NOAA THL':         'NOAA Trinidad Head Line',
   'NOAA WCOA':        'NOAA West Coast Ocean Acidification Program',
