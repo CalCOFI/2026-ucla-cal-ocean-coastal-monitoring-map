@@ -509,23 +509,7 @@
   background: #244c77;
 }
 
-/* ── FEEDBACK BUTTON + MODAL ── */
-#feedback-button {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  z-index: 1000;
-  padding: 9px 16px;
-  border-radius: 20px;
-  border: none;
-  background: #1a3a5c;
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-}
-#feedback-button:hover { background: #244c77; }
+/* ── FEEDBACK MODAL ── */
 
 #feedback-backdrop {
   display: none;
@@ -656,6 +640,8 @@
 <div id="header">
   <span>California Ocean &amp; Coastal Monitoring Inventory</span>
   <span id="header-disclaimer">&#9432; Includes monitoring within 12 nautical miles of the California coast only</span>
+  <button id="feedback-btn" onclick="showFeedbackModal()"
+    style="margin-left:auto;align-self:center;background:rgba(255,255,255,0.12);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:12px;padding:0 12px;height:22px;line-height:20px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">Send feedback</button>
 </div>
 
 <div id="controls">
@@ -1066,7 +1052,6 @@
     </div>
   </div>
 
-  <button id="feedback-button" onclick="showFeedbackModal()">Send feedback</button>
 </div>
 
 <!-- Feedback modal — posts to a Google Form. Swap FEEDBACK_ENDPOINT and
