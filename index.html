@@ -34,7 +34,7 @@
     font-weight: bold;
     line-height: 1;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 16px;
     flex-wrap: wrap;
   }
@@ -1201,7 +1201,7 @@ function buildLegend() {
     document.getElementById('discharger-toggle').checked  ? { id: 'dischargers', label: 'Dischargers' } : null,
     document.getElementById('gaps-toggle').checked        ? { id: 'gaps',        label: 'Gaps' }        : null,
     document.getElementById('wea-toggle').checked ? { id: 'wea', label: 'Wind Energy' } : null,
-    document.getElementById('asbs-toggle').checked ? { id: 'asbs', label: 'ASBS' } : null,
+    document.getElementById('asbs-toggle').checked ? { id: 'asbs', label: 'ASBS Areas' } : null,
   ].filter(Boolean);
 
   // If active tab no longer exists, fall back to programs
