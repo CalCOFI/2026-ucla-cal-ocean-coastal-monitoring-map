@@ -861,20 +861,8 @@
         <div id="beachwatch-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
           State Water Board program monitoring bacteria levels at California beaches to protect public health.
         </div>
-        <div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
+        <div style="margin-top:4px;">
           <div class="toggle-sub" id="beachwatch-status">Not loaded</div>
-          <div class="dropdown-btn" id="bwcounty-btn" onclick="toggleBWCountyPanel()"
-            style="display:none;height:22px;min-width:110px;font-size:10px;padding:0 6px;color:#1a3a5c;font-weight:600;">
-            <span id="bwcounty-label">All Counties</span>
-            <span style="font-size:8px;color:#888;">&#9660;</span>
-          </div>
-          <div class="dropdown-panel" id="bwcounty-panel" style="min-width:200px;">
-            <div class="dropdown-actions">
-              <span onclick="selectAllBWCounties()">Select all</span>
-              <span onclick="clearBWCounties()" style="color:#888;">Clear</span>
-            </div>
-            <div id="bwcounty-checkbox-list"></div>
-          </div>
         </div>
       </div>
 
@@ -1759,14 +1747,6 @@ function makeBeachWatchPopup(feature) {
   return `<div class="bw-header"><div class="bw-title">${p.beach_name||'BeachWatch Station'}</div><div class="bw-subtitle"><b>Station:</b> ${p.station_name||'—'}</div></div><table class="bw-table">${rows}</table>`;
 }
 
-// North → South order for CA coastal counties/agencies in the BeachWatch data
-const BW_COUNTY_ORDER = [
-  'Humboldt','Mendocino','Sonoma','Marin','San Francisco','East Bay Parks District',
-  'San Mateo','Santa Cruz','Monterey','San Luis Obispo','Santa Barbara','Ventura',
-  'Los Angeles','Long Beach City','Orange','San Diego'
-];
-let bwSelectedCounties = new Set();
-
 function getBeachWatchRadius() {
   const z = map.getZoom();
   if (z <= 6) return 3;
@@ -1787,26 +1767,8 @@ function loadBeachWatch() {
   }).then(data=>{
     allBeachWatchFeatures = data.features||[];
     beachWatchLoaded = true;
-    const presentCounties = new Set(allBeachWatchFeatures.map(f=>f.properties.county).filter(Boolean));
-    const orderedCounties = BW_COUNTY_ORDER.filter(c=>presentCounties.has(c));
-    // append anything unexpected not in our known order, alphabetically, at the end
-    [...presentCounties].filter(c=>!BW_COUNTY_ORDER.includes(c)).sort().forEach(c=>orderedCounties.push(c));
-
-    const list = document.getElementById('bwcounty-checkbox-list');
-    list.innerHTML = '';
-    orderedCounties.forEach(c=>{
-      bwSelectedCounties.add(c);
-      const id = 'bwc-'+c.replace(/[^a-zA-Z0-9]/g,'-');
-      const div = document.createElement('div');
-      div.className = 'param-option';
-      div.innerHTML = `<input type="checkbox" id="${id}" checked onchange="toggleBWCounty('${c.replace(/'/g,"\\'")}',this.checked)"> <label for="${id}" style="cursor:pointer;flex:1;margin:0;">${c}</label>`;
-      list.appendChild(div);
-    });
-
-    document.getElementById('bwcounty-btn').style.display = 'flex';
     document.getElementById('beachwatch-desc').style.display = 'block';
     renderBeachWatch(allBeachWatchFeatures);
-    updateBWCountyLabel();
     statusEl.textContent = allBeachWatchFeatures.length.toLocaleString()+' stations';
   }).catch(err=>{
     document.getElementById('beachwatch-toggle').checked=false;
@@ -1831,71 +1793,6 @@ function renderBeachWatch(features) {
   });
 }
 
-function currentBWFiltered() {
-  return allBeachWatchFeatures.filter(f=>bwSelectedCounties.has(f.properties.county));
-}
-
-function toggleBWCounty(county, on) {
-  if (on) bwSelectedCounties.add(county); else bwSelectedCounties.delete(county);
-  updateBWCountyLabel();
-  const filtered = currentBWFiltered();
-  renderBeachWatch(filtered);
-  document.getElementById('beachwatch-status').textContent = filtered.length.toLocaleString()+' stations';
-}
-
-function selectAllBWCounties() {
-  bwSelectedCounties = new Set(allBeachWatchFeatures.map(f=>f.properties.county).filter(Boolean));
-  document.querySelectorAll('#bwcounty-checkbox-list input').forEach(i=>i.checked=true);
-  updateBWCountyLabel();
-  const filtered = currentBWFiltered();
-  renderBeachWatch(filtered);
-  document.getElementById('beachwatch-status').textContent = filtered.length.toLocaleString()+' stations';
-}
-
-function clearBWCounties() {
-  bwSelectedCounties.clear();
-  document.querySelectorAll('#bwcounty-checkbox-list input').forEach(i=>i.checked=false);
-  updateBWCountyLabel();
-  renderBeachWatch([]);
-  document.getElementById('beachwatch-status').textContent = '0 stations';
-}
-
-function updateBWCountyLabel() {
-  const label = document.getElementById('bwcounty-label');
-  const totalCounties = document.querySelectorAll('#bwcounty-checkbox-list input').length;
-  if (bwSelectedCounties.size === 0) label.textContent = 'None';
-  else if (bwSelectedCounties.size === totalCounties) label.textContent = 'All Counties';
-  else if (bwSelectedCounties.size === 1) label.textContent = [...bwSelectedCounties][0];
-  else label.textContent = bwSelectedCounties.size + ' selected';
-}
-
-function toggleBWCountyPanel() {
-  const panel = document.getElementById('bwcounty-panel');
-  // Reparent to <body> once, out of the nested/scrollable Other Layers
-  // dropdown — otherwise its overflow + stacking context can clip or
-  // swallow this nested popup.
-  if (panel.parentElement !== document.body) document.body.appendChild(panel);
-
-  const isOpen = panel.style.display === 'block';
-  document.querySelectorAll('.dropdown-panel').forEach(p=>{ if(p.id!=='bwcounty-panel') p.style.display='none'; });
-  if (isOpen) { panel.style.display = 'none'; return; }
-  const btnEl = document.getElementById('bwcounty-btn');
-  const btnRect = btnEl.getBoundingClientRect();
-  panel.style.position = 'fixed';
-  panel.style.top = (btnRect.bottom + 4) + 'px';
-  panel.style.left = btnRect.left + 'px';
-  panel.style.zIndex = '10000';
-  panel.style.display = 'block';
-}
-
-document.addEventListener('click', function(e) {
-  const btn = document.getElementById('bwcounty-btn');
-  const panel = document.getElementById('bwcounty-panel');
-  if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target)) {
-    panel.style.display = 'none';
-  }
-});
-
 map.on('zoomend', function() {
   if (document.getElementById('beachwatch-toggle').checked) {
     beachWatchLayer.eachLayer(topLevel=>{
@@ -1910,17 +1807,13 @@ function toggleBeachWatch() {
     beachWatchLayer.addTo(map);
     if (!beachWatchLoaded) loadBeachWatch();
     else {
-      document.getElementById('bwcounty-btn').style.display = 'flex';
       document.getElementById('beachwatch-desc').style.display = 'block';
-      const filtered = currentBWFiltered();
-      renderBeachWatch(filtered);
-      document.getElementById('beachwatch-status').textContent = filtered.length.toLocaleString()+' stations';
+      renderBeachWatch(allBeachWatchFeatures);
+      document.getElementById('beachwatch-status').textContent = allBeachWatchFeatures.length.toLocaleString()+' stations';
     }
   } else {
     beachWatchLayer.remove();
     document.getElementById('beachwatch-status').textContent='Hidden';
-    document.getElementById('bwcounty-btn').style.display='none';
-    document.getElementById('bwcounty-panel').style.display='none';
     document.getElementById('beachwatch-desc').style.display='none';
   }
 }
@@ -2989,10 +2882,7 @@ function updateOtherLayersLabel() {
 document.addEventListener('click', function(e) {
   const btn = document.getElementById('other-layers-btn');
   const panel = document.getElementById('other-layers-panel');
-  const bwPanel = document.getElementById('bwcounty-panel');
-  const bwBtn = document.getElementById('bwcounty-btn');
-  const clickedInBW = (bwPanel && bwPanel.contains(e.target)) || (bwBtn && bwBtn.contains(e.target));
-  if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target) && !clickedInBW) {
+  if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target)) {
     panel.style.display = 'none';
   }
 });
