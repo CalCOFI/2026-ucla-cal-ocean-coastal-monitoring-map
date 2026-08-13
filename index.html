@@ -672,7 +672,25 @@
     <div class="toggle-sub" id="transect-status">Not loaded</div>
   </div>
 
-  <!-- Other Layers dropdown (Bathymetry, Gaps, Wind Energy, BeachWatch) -->
+  <!-- Bathymetry toggle -->
+  <div class="toggle-wrap">
+    <label class="toggle-row" title="Show GEBCO 2025 seafloor depth layer">
+      <input type="checkbox" id="bathy-toggle" onchange="toggleBathy()">
+      <span>Bathymetry</span>
+    </label>
+    <div class="toggle-sub" id="bathy-status">Not loaded</div>
+  </div>
+
+  <!-- Gaps toggle -->
+  <div class="toggle-wrap">
+    <label class="toggle-row" title="Show unmonitored areas within 13.4 mile coastal buffer">
+      <input type="checkbox" id="gaps-toggle" onchange="toggleGaps()">
+      <span>Gaps</span>
+    </label>
+    <div class="toggle-sub" id="gaps-status">Not loaded</div>
+  </div>
+
+  <!-- Other Layers dropdown (Wind Energy, BeachWatch) -->
   <div class="toggle-wrap" style="position:relative;">
     <div class="toggle-row" id="other-layers-btn" onclick="toggleOtherLayersPanel()" style="justify-content:space-between;">
       <span id="other-layers-label">Other Layers</span>
@@ -680,24 +698,6 @@
     </div>
     <div class="toggle-sub">&nbsp;</div>
     <div class="dropdown-panel" id="other-layers-panel" style="position:absolute;min-width:230px;max-width:260px;padding:4px 0;">
-
-      <!-- Bathymetry toggle -->
-      <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
-        <label class="toggle-row" title="Show GEBCO 2025 seafloor depth layer">
-          <input type="checkbox" id="bathy-toggle" onchange="toggleBathy();updateOtherLayersLabel()">
-          <span>Bathymetry</span>
-        </label>
-        <div class="toggle-sub" id="bathy-status">Not loaded</div>
-      </div>
-
-      <!-- Gaps toggle -->
-      <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
-        <label class="toggle-row" title="Show unmonitored areas within 13.4 mile coastal buffer">
-          <input type="checkbox" id="gaps-toggle" onchange="toggleGaps();updateOtherLayersLabel()">
-          <span>Gaps</span>
-        </label>
-        <div class="toggle-sub" id="gaps-status">Not loaded</div>
-      </div>
 
       <!-- WEA toggle -->
       <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
@@ -709,18 +709,28 @@
       </div>
 
       <!-- BeachWatch toggle -->
-      <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
+      <div class="toggle-wrap" style="padding:8px 12px;margin:0;position:relative;">
         <label class="toggle-row" title="Show State Water Board BeachWatch monitoring stations">
           <input type="checkbox" id="beachwatch-toggle" onchange="toggleBeachWatch();updateOtherLayersLabel()">
           <span>BeachWatch</span>
         </label>
-        <div style="display:flex;align-items:center;gap:5px;">
+        <div id="beachwatch-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
+          State Water Board program monitoring bacteria levels at California beaches to protect public health.
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
           <div class="toggle-sub" id="beachwatch-status">Not loaded</div>
-          <select id="beachwatch-county-select" onchange="applyBeachWatchCountyFilter()"
-            style="display:none;font-size:10px;padding:1px 3px;border:1px solid #aaa;border-radius:3px;
-            background:#f0f4f8;color:#1a3a5c;font-weight:600;">
-            <option value="">All Counties</option>
-          </select>
+          <div class="dropdown-btn" id="bwcounty-btn" onclick="toggleBWCountyPanel()"
+            style="display:none;height:22px;min-width:110px;font-size:10px;padding:0 6px;color:#1a3a5c;font-weight:600;">
+            <span id="bwcounty-label">All Counties</span>
+            <span style="font-size:8px;color:#888;">&#9660;</span>
+          </div>
+          <div class="dropdown-panel" id="bwcounty-panel" style="min-width:200px;">
+            <div class="dropdown-actions">
+              <span onclick="selectAllBWCounties()">Select all</span>
+              <span onclick="clearBWCounties()" style="color:#888;">Clear</span>
+            </div>
+            <div id="bwcounty-checkbox-list"></div>
+          </div>
         </div>
       </div>
 
@@ -1268,7 +1278,6 @@ let bathyLoaded = false;
 let allBeachWatchFeatures = [];
 let beachWatchLayer  = L.layerGroup();
 let beachWatchLoaded = false;
-let beachWatchCountyFilter = '';
 
 const NS = 'http://www.w3.org/2000/svg';
 function addEl(parent, tag, attrs) {
@@ -1483,6 +1492,25 @@ function makeBeachWatchPopup(p) {
   return `<div class="dp-header"><div class="dp-title">${p.station_name||'BeachWatch Station'}</div></div><table class="dp-table">${rows}</table>`;
 }
 
+// North → South order for CA coastal counties/agencies in the BeachWatch data
+const BW_COUNTY_ORDER = [
+  'Humboldt','Mendocino','Sonoma','Marin','San Francisco','East Bay Parks District',
+  'San Mateo','Santa Cruz','Monterey','San Luis Obispo','Santa Barbara','Ventura',
+  'Los Angeles','Long Beach City','Orange','San Diego'
+];
+let bwSelectedCounties = new Set();
+
+function getBeachWatchRadius() {
+  const z = map.getZoom();
+  if (z <= 6) return 2;
+  if (z <= 7) return 2.5;
+  if (z <= 8) return 3;
+  if (z <= 9) return 3.5;
+  if (z <= 10) return 4.5;
+  if (z <= 11) return 5.5;
+  return 6.5;
+}
+
 function loadBeachWatch() {
   const statusEl = document.getElementById('beachwatch-status');
   statusEl.textContent = 'Loading…';
@@ -1492,15 +1520,26 @@ function loadBeachWatch() {
   }).then(data=>{
     allBeachWatchFeatures = data.features||[];
     beachWatchLoaded = true;
-    const counties = [...new Set(allBeachWatchFeatures.map(f=>f.properties.county).filter(Boolean))].sort();
-    const sel = document.getElementById('beachwatch-county-select');
-    counties.forEach(c=>{
-      const opt = document.createElement('option');
-      opt.value = c; opt.textContent = c;
-      sel.appendChild(opt);
+    const presentCounties = new Set(allBeachWatchFeatures.map(f=>f.properties.county).filter(Boolean));
+    const orderedCounties = BW_COUNTY_ORDER.filter(c=>presentCounties.has(c));
+    // append anything unexpected not in our known order, alphabetically, at the end
+    [...presentCounties].filter(c=>!BW_COUNTY_ORDER.includes(c)).sort().forEach(c=>orderedCounties.push(c));
+
+    const list = document.getElementById('bwcounty-checkbox-list');
+    list.innerHTML = '';
+    orderedCounties.forEach(c=>{
+      bwSelectedCounties.add(c);
+      const id = 'bwc-'+c.replace(/[^a-zA-Z0-9]/g,'-');
+      const div = document.createElement('div');
+      div.className = 'param-option';
+      div.innerHTML = `<input type="checkbox" id="${id}" checked onchange="toggleBWCounty('${c.replace(/'/g,"\\'")}',this.checked)"> <label for="${id}" style="cursor:pointer;flex:1;margin:0;">${c}</label>`;
+      list.appendChild(div);
     });
-    sel.style.display = 'inline-block';
+
+    document.getElementById('bwcounty-btn').style.display = 'flex';
+    document.getElementById('beachwatch-desc').style.display = 'block';
     renderBeachWatch(allBeachWatchFeatures);
+    updateBWCountyLabel();
     statusEl.textContent = allBeachWatchFeatures.length.toLocaleString()+' stations';
   }).catch(err=>{
     document.getElementById('beachwatch-toggle').checked=false;
@@ -1511,27 +1550,86 @@ function loadBeachWatch() {
 
 function renderBeachWatch(features) {
   beachWatchLayer.clearLayers();
+  const r = getBeachWatchRadius();
   features.forEach(feature=>{
     const layer = L.geoJSON(feature,{
-      pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:5,fillColor:'#e0a458',color:'#8a5a1e',weight:1.2,opacity:1,fillOpacity:0.85}),
+      pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:r,fillColor:'#e0a458',color:'#8a5a1e',weight:1,opacity:1,fillOpacity:0.85}),
       onEachFeature:(f,lyr)=>{
         lyr.bindPopup(makeBeachWatchPopup(f.properties),{maxWidth:340,maxHeight:400});
-        lyr.on('mouseover',function(){this.setStyle({fillOpacity:1,radius:7});});
-        lyr.on('mouseout', function(){this.setStyle({fillOpacity:0.85,radius:5});});
+        lyr.on('mouseover',function(){this.setStyle({fillOpacity:1,radius:getBeachWatchRadius()+2});});
+        lyr.on('mouseout', function(){this.setStyle({fillOpacity:0.85,radius:getBeachWatchRadius()});});
       }
     });
     layer.addTo(beachWatchLayer);
   });
 }
 
-function applyBeachWatchCountyFilter() {
-  beachWatchCountyFilter = document.getElementById('beachwatch-county-select').value;
-  const filtered = beachWatchCountyFilter
-    ? allBeachWatchFeatures.filter(f=>f.properties.county===beachWatchCountyFilter)
-    : allBeachWatchFeatures;
+function currentBWFiltered() {
+  return allBeachWatchFeatures.filter(f=>bwSelectedCounties.has(f.properties.county));
+}
+
+function toggleBWCounty(county, on) {
+  if (on) bwSelectedCounties.add(county); else bwSelectedCounties.delete(county);
+  updateBWCountyLabel();
+  const filtered = currentBWFiltered();
   renderBeachWatch(filtered);
   document.getElementById('beachwatch-status').textContent = filtered.length.toLocaleString()+' stations';
 }
+
+function selectAllBWCounties() {
+  bwSelectedCounties = new Set(allBeachWatchFeatures.map(f=>f.properties.county).filter(Boolean));
+  document.querySelectorAll('#bwcounty-checkbox-list input').forEach(i=>i.checked=true);
+  updateBWCountyLabel();
+  const filtered = currentBWFiltered();
+  renderBeachWatch(filtered);
+  document.getElementById('beachwatch-status').textContent = filtered.length.toLocaleString()+' stations';
+}
+
+function clearBWCounties() {
+  bwSelectedCounties.clear();
+  document.querySelectorAll('#bwcounty-checkbox-list input').forEach(i=>i.checked=false);
+  updateBWCountyLabel();
+  renderBeachWatch([]);
+  document.getElementById('beachwatch-status').textContent = '0 stations';
+}
+
+function updateBWCountyLabel() {
+  const label = document.getElementById('bwcounty-label');
+  const totalCounties = document.querySelectorAll('#bwcounty-checkbox-list input').length;
+  if (bwSelectedCounties.size === 0) label.textContent = 'None';
+  else if (bwSelectedCounties.size === totalCounties) label.textContent = 'All Counties';
+  else if (bwSelectedCounties.size === 1) label.textContent = [...bwSelectedCounties][0];
+  else label.textContent = bwSelectedCounties.size + ' selected';
+}
+
+function toggleBWCountyPanel() {
+  const panel = document.getElementById('bwcounty-panel');
+  const isOpen = panel.style.display === 'block';
+  document.querySelectorAll('.dropdown-panel').forEach(p=>{ if(p.id!=='bwcounty-panel') p.style.display='none'; });
+  if (isOpen) { panel.style.display = 'none'; return; }
+  const btnEl = document.getElementById('bwcounty-btn');
+  const btnRect = btnEl.getBoundingClientRect();
+  panel.style.position = 'fixed';
+  panel.style.top = (btnRect.bottom + 4) + 'px';
+  panel.style.left = btnRect.left + 'px';
+  panel.style.display = 'block';
+}
+
+document.addEventListener('click', function(e) {
+  const btn = document.getElementById('bwcounty-btn');
+  const panel = document.getElementById('bwcounty-panel');
+  if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
+
+map.on('zoomend', function() {
+  if (document.getElementById('beachwatch-toggle').checked) {
+    beachWatchLayer.eachLayer(topLevel=>{
+      topLevel.eachLayer(l=>{ if (l.setRadius) l.setRadius(getBeachWatchRadius()); });
+    });
+  }
+});
 
 function toggleBeachWatch() {
   const on = document.getElementById('beachwatch-toggle').checked;
@@ -1539,13 +1637,18 @@ function toggleBeachWatch() {
     beachWatchLayer.addTo(map);
     if (!beachWatchLoaded) loadBeachWatch();
     else {
-      document.getElementById('beachwatch-county-select').style.display = 'inline-block';
-      applyBeachWatchCountyFilter();
+      document.getElementById('bwcounty-btn').style.display = 'flex';
+      document.getElementById('beachwatch-desc').style.display = 'block';
+      const filtered = currentBWFiltered();
+      renderBeachWatch(filtered);
+      document.getElementById('beachwatch-status').textContent = filtered.length.toLocaleString()+' stations';
     }
   } else {
     beachWatchLayer.remove();
     document.getElementById('beachwatch-status').textContent='Hidden';
-    document.getElementById('beachwatch-county-select').style.display='none';
+    document.getElementById('bwcounty-btn').style.display='none';
+    document.getElementById('bwcounty-panel').style.display='none';
+    document.getElementById('beachwatch-desc').style.display='none';
   }
 }
 
@@ -2449,7 +2552,7 @@ function toggleOtherLayersPanel() {
 }
 
 function updateOtherLayersLabel() {
-  const ids = ['bathy-toggle','gaps-toggle','wea-toggle','beachwatch-toggle'];
+  const ids = ['wea-toggle','beachwatch-toggle'];
   const n = ids.filter(id => document.getElementById(id).checked).length;
   document.getElementById('other-layers-label').textContent = n > 0 ? 'Other Layers (' + n + ')' : 'Other Layers';
 }
