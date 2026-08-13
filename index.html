@@ -504,7 +504,7 @@
 #feedback-button {
   position: absolute;
   right: 10px;
-  bottom: 30px;
+  top: 10px;
   z-index: 1000;
   padding: 9px 16px;
   border-radius: 20px;
@@ -1663,13 +1663,13 @@ let bwSelectedCounties = new Set();
 
 function getBeachWatchRadius() {
   const z = map.getZoom();
-  if (z <= 6) return 2;
-  if (z <= 7) return 2.5;
-  if (z <= 8) return 3;
-  if (z <= 9) return 3.5;
-  if (z <= 10) return 4.5;
-  if (z <= 11) return 5.5;
-  return 6.5;
+  if (z <= 6) return 3;
+  if (z <= 7) return 4;
+  if (z <= 8) return 5;
+  if (z <= 9) return 6.5;
+  if (z <= 10) return 8;
+  if (z <= 11) return 9.5;
+  return 11;
 }
 
 function loadBeachWatch() {
@@ -1717,7 +1717,7 @@ function renderBeachWatch(features) {
       pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:r,fillColor:'#e0a458',color:'#8a5a1e',weight:1,opacity:1,fillOpacity:0.85}),
       onEachFeature:(f,lyr)=>{
         lyr.bindPopup(makeBeachWatchPopup(f),{maxWidth:340,maxHeight:400});
-        lyr.on('mouseover',function(){this.setStyle({fillOpacity:1,radius:getBeachWatchRadius()+2});});
+        lyr.on('mouseover',function(){this.setStyle({fillOpacity:1,radius:getBeachWatchRadius()+3});});
         lyr.on('mouseout', function(){this.setStyle({fillOpacity:0.85,radius:getBeachWatchRadius()});});
       }
     });
