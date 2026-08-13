@@ -304,6 +304,16 @@
   .dp-table td:last-child  { color: #111; }
   .dp-section-head td { background: #e0e0e0 !important; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #3a3a3a; padding: 5px 18px; }
 
+  .bw-header   { background: #a5651e; color: #fff; padding: 14px 36px 12px 18px; }
+  .bw-title    { font-size: 15px; font-weight: 700; line-height: 1.3; margin-bottom: 3px; }
+  .bw-subtitle { font-size: 12px; opacity: 0.85; }
+  .bw-subtitle b { font-weight: 600; opacity: 0.85; }
+  .bw-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .bw-table tr:nth-child(even) td { background: #fbf3e9; }
+  .bw-table td { padding: 6px 18px; vertical-align: top; border-bottom: 1px solid #ece3d5; line-height: 1.45; }
+  .bw-table td:first-child { font-weight: 600; color: #a5651e; white-space: nowrap; width: 38%; }
+  .bw-table td:last-child  { color: #111; }
+
   #gap-stats-box {
     display: none;
     position: absolute;
@@ -488,6 +498,115 @@
 
 #welcome-btn:hover {
   background: #244c77;
+}
+
+/* ── FEEDBACK BUTTON + MODAL ── */
+#feedback-button {
+  position: absolute;
+  right: 10px;
+  bottom: 30px;
+  z-index: 1000;
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: none;
+  background: #1a3a5c;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+#feedback-button:hover { background: #244c77; }
+
+#feedback-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 9500;
+  align-items: center;
+  justify-content: center;
+}
+#feedback-backdrop.open { display: flex; }
+
+#feedback-modal {
+  width: min(420px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 14px 42px rgba(0,0,0,0.28);
+}
+
+.feedback-modal-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #e3e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.feedback-modal-title { font-size: 17px; font-weight: 700; color: #16385a; }
+.feedback-modal-close {
+  background: none; border: none; color: #888; font-size: 20px;
+  cursor: pointer; line-height: 1; padding: 0;
+}
+.feedback-modal-close:hover { color: #222; }
+
+.feedback-modal-body { padding: 16px 20px 20px; }
+
+.feedback-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a3a5c;
+  margin: 14px 0 6px;
+}
+.feedback-label:first-child { margin-top: 0; }
+.feedback-optional { font-weight: 400; color: #888; }
+
+.feedback-textarea,
+.feedback-input {
+  width: 100%;
+  background: #f4f7fa;
+  border: 1.5px solid #ccd6e0;
+  border-radius: 6px;
+  color: #222;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.feedback-textarea { min-height: 78px; resize: vertical; }
+.feedback-textarea:focus,
+.feedback-input:focus {
+  border-color: #1a3a5c;
+  box-shadow: 0 0 0 3px rgba(26,58,92,0.12);
+}
+
+.feedback-submit-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #1a3a5c;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.feedback-submit-btn:hover { background: #244c77; }
+.feedback-submit-btn:disabled { opacity: 0.6; cursor: default; }
+
+.feedback-thanks {
+  color: #1a3a5c;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
 }
 
 /* ── Responsive Modal Scaling ───────────────────────── */
@@ -906,6 +1025,42 @@
         <tr><td>Central Coast</td><td id="gs-r3">—</td></tr>
         <tr><td>Southern CA</td><td id="gs-r4">—</td></tr>
       </table>
+    </div>
+  </div>
+
+  <button id="feedback-button" onclick="showFeedbackModal()">Send feedback</button>
+</div>
+
+<!-- Feedback modal — posts to a Google Form. Swap FEEDBACK_ENDPOINT and
+     FEEDBACK_ENTRIES in the script below with your own form's values. -->
+<div id="feedback-backdrop" onclick="closeFeedbackModal(event)">
+  <div id="feedback-modal" onclick="event.stopPropagation()">
+    <div class="feedback-modal-header">
+      <div class="feedback-modal-title">Send feedback</div>
+      <button class="feedback-modal-close" onclick="hideFeedbackModal()">✕</button>
+    </div>
+    <div class="feedback-modal-body">
+      <form id="feedback-form" onsubmit="submitFeedback(event)">
+        <label class="feedback-label" for="fb-working">What's working well?</label>
+        <textarea class="feedback-textarea" id="fb-working"
+          placeholder="e.g. the resolution toggle, the discharger filter"></textarea>
+
+        <label class="feedback-label" for="fb-improve">What needs improvement?</label>
+        <textarea class="feedback-textarea" id="fb-improve"
+          placeholder="e.g. hard to find a specific program, map loads slowly"></textarea>
+
+        <label class="feedback-label" for="fb-broken">Found something broken? <span class="feedback-optional">(optional)</span></label>
+        <textarea class="feedback-textarea" id="fb-broken"
+          placeholder="Describe the bug or confusing behavior"></textarea>
+
+        <label class="feedback-label" for="fb-email">Email <span class="feedback-optional">(optional)</span></label>
+        <input class="feedback-input" type="email" id="fb-email" placeholder="name@example.com">
+
+        <button type="submit" class="feedback-submit-btn" id="feedback-submit-btn">Submit</button>
+      </form>
+      <div id="feedback-thanks" class="feedback-thanks" style="display:none">
+        Thanks — your feedback was sent.
+      </div>
     </div>
   </div>
 </div>
@@ -1484,12 +1639,18 @@ function renderDischargers(features) {
   });
 }
 
-function makeBeachWatchPopup(p) {
+function makeBeachWatchPopup(feature) {
+  const p = feature.properties || {};
+  const coords = (feature.geometry && feature.geometry.coordinates) || [];
+  const lon = coords[0], lat = coords[1];
+  const latStr = (typeof lat === 'number') ? lat.toFixed(5) : '—';
+  const lonStr = (typeof lon === 'number') ? lon.toFixed(5) : '—';
   const rows = `
-    <tr><td>Beach</td><td>${p.beach_name||'—'}</td></tr>
     <tr><td>County</td><td>${p.county||'—'}</td></tr>
+    <tr><td>Latitude</td><td>${latStr}</td></tr>
+    <tr><td>Longitude</td><td>${lonStr}</td></tr>
   `;
-  return `<div class="dp-header"><div class="dp-title">${p.station_name||'BeachWatch Station'}</div></div><table class="dp-table">${rows}</table>`;
+  return `<div class="bw-header"><div class="bw-title">${p.beach_name||'BeachWatch Station'}</div><div class="bw-subtitle"><b>Station:</b> ${p.station_name||'—'}</div></div><table class="bw-table">${rows}</table>`;
 }
 
 // North → South order for CA coastal counties/agencies in the BeachWatch data
@@ -1555,7 +1716,7 @@ function renderBeachWatch(features) {
     const layer = L.geoJSON(feature,{
       pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:r,fillColor:'#e0a458',color:'#8a5a1e',weight:1,opacity:1,fillOpacity:0.85}),
       onEachFeature:(f,lyr)=>{
-        lyr.bindPopup(makeBeachWatchPopup(f.properties),{maxWidth:340,maxHeight:400});
+        lyr.bindPopup(makeBeachWatchPopup(f),{maxWidth:340,maxHeight:400});
         lyr.on('mouseover',function(){this.setStyle({fillOpacity:1,radius:getBeachWatchRadius()+2});});
         lyr.on('mouseout', function(){this.setStyle({fillOpacity:0.85,radius:getBeachWatchRadius()});});
       }
@@ -3879,6 +4040,50 @@ const DPARAM_CANONICAL = {
 
 function dparamCanonical(raw) {
   return DPARAM_CANONICAL[raw] || raw;
+}
+
+// ── FEEDBACK — posts to a Google Form; no backend needed. ──
+// 1. Create a Google Form with your questions.
+// 2. Open the live form, View Page Source, search "entry." to find each
+//    question's hidden field id, and search "formResponse" for the POST URL.
+// 3. Replace the placeholder values below with your real ones.
+const FEEDBACK_ENDPOINT = 'https://docs.google.com/forms/d/e/1FAIpQLSf4Gj2vNGEw6aR2QzqUetIb9S7sSDtMcLLiCG9eia2xHBLVkw/formResponse';
+const FEEDBACK_ENTRIES = {
+  working: 'entry.776933298',
+  improve: 'entry.1913371976',
+  broken:  'entry.1714444848',
+  email:   'entry.765283935'
+};
+function showFeedbackModal() {
+  document.getElementById('feedback-backdrop').classList.add('open');
+}
+function hideFeedbackModal() {
+  document.getElementById('feedback-backdrop').classList.remove('open');
+  document.getElementById('feedback-form').style.display = '';
+  document.getElementById('feedback-thanks').style.display = 'none';
+}
+function closeFeedbackModal(e) { if (e.target.id === 'feedback-backdrop') hideFeedbackModal(); }
+function submitFeedback(e) {
+  e.preventDefault();
+  const btn = document.getElementById('feedback-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  const fd = new FormData();
+  fd.append(FEEDBACK_ENTRIES.working, document.getElementById('fb-working').value);
+  fd.append(FEEDBACK_ENTRIES.improve, document.getElementById('fb-improve').value);
+  fd.append(FEEDBACK_ENTRIES.broken, document.getElementById('fb-broken').value);
+  fd.append(FEEDBACK_ENTRIES.email, document.getElementById('fb-email').value);
+  fetch(FEEDBACK_ENDPOINT, { method: 'POST', mode: 'no-cors', body: fd })
+    .then(() => {
+      document.getElementById('feedback-form').style.display = 'none';
+      document.getElementById('feedback-thanks').style.display = 'block';
+      document.getElementById('feedback-form').reset();
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+      alert('Something went wrong sending that — check your connection and try again.');
+    });
 }
 
 </script>
