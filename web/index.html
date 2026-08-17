@@ -56,7 +56,7 @@
     font-weight: bold;
     line-height: 1;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 16px;
     flex-wrap: wrap;
   }
@@ -326,6 +326,25 @@
   .dp-table td:last-child  { color: #111; }
   .dp-section-head td { background: #e0e0e0 !important; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #3a3a3a; padding: 5px 18px; }
 
+  .bw-header   { background: #a5651e; color: #fff; padding: 14px 36px 12px 18px; }
+  .bw-title    { font-size: 15px; font-weight: 700; line-height: 1.3; margin-bottom: 3px; }
+  .bw-subtitle { font-size: 12px; opacity: 0.85; }
+  .bw-subtitle b { font-weight: 600; opacity: 0.85; }
+  .bw-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .bw-table tr:nth-child(even) td { background: #fbf3e9; }
+  .bw-table td { padding: 6px 18px; vertical-align: top; border-bottom: 1px solid #ece3d5; line-height: 1.45; }
+  .bw-table td:first-child { font-weight: 600; color: #a5651e; white-space: nowrap; width: 38%; }
+  .bw-table td:last-child  { color: #111; }
+
+  .asbs-header   { background: #6a4c93; color: #fff; padding: 14px 36px 12px 18px; }
+  .asbs-title    { font-size: 15px; font-weight: 700; line-height: 1.3; margin-bottom: 3px; }
+  .asbs-subtitle { font-size: 12px; opacity: 0.85; }
+  .asbs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .asbs-table tr:nth-child(even) td { background: #f5f1fa; }
+  .asbs-table td { padding: 6px 18px; vertical-align: top; border-bottom: 1px solid #e6ddf0; line-height: 1.45; }
+  .asbs-table td:first-child { font-weight: 600; color: #6a4c93; white-space: nowrap; width: 38%; }
+  .asbs-table td:last-child  { color: #111; }
+
   #gap-stats-box {
     display: none;
     position: absolute;
@@ -512,6 +531,99 @@
   background: #244c77;
 }
 
+/* ── FEEDBACK MODAL ── */
+
+#feedback-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 9500;
+  align-items: center;
+  justify-content: center;
+}
+#feedback-backdrop.open { display: flex; }
+
+#feedback-modal {
+  width: min(420px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 14px 42px rgba(0,0,0,0.28);
+}
+
+.feedback-modal-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #e3e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.feedback-modal-title { font-size: 17px; font-weight: 700; color: #16385a; }
+.feedback-modal-close {
+  background: none; border: none; color: #888; font-size: 20px;
+  cursor: pointer; line-height: 1; padding: 0;
+}
+.feedback-modal-close:hover { color: #222; }
+
+.feedback-modal-body { padding: 16px 20px 20px; }
+
+.feedback-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a3a5c;
+  margin: 14px 0 6px;
+}
+.feedback-label:first-child { margin-top: 0; }
+.feedback-optional { font-weight: 400; color: #888; }
+
+.feedback-textarea,
+.feedback-input {
+  width: 100%;
+  background: #f4f7fa;
+  border: 1.5px solid #ccd6e0;
+  border-radius: 6px;
+  color: #222;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 9px 11px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.feedback-textarea { min-height: 78px; resize: vertical; }
+.feedback-textarea:focus,
+.feedback-input:focus {
+  border-color: #1a3a5c;
+  box-shadow: 0 0 0 3px rgba(26,58,92,0.12);
+}
+
+.feedback-submit-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #1a3a5c;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.feedback-submit-btn:hover { background: #244c77; }
+.feedback-submit-btn:disabled { opacity: 0.6; cursor: default; }
+
+.feedback-thanks {
+  color: #1a3a5c;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
+}
+
 /* ── Responsive Modal Scaling ───────────────────────── */
 
 @media (max-height: 1000px) {
@@ -550,6 +662,9 @@
 <div id="header">
   <span>California Ocean &amp; Coastal Monitoring Inventory</span>
   <span id="header-disclaimer">&#9432; Includes monitoring within 12 nautical miles of the California coast only</span>
+  <button id="feedback-btn" onclick="showFeedbackModal()"
+    style="margin-left:auto;align-self:center;background:none;color:#ffffff;border:none;padding:0;font-size:12px;font-weight:400;cursor:pointer;white-space:nowrap;letter-spacing:0.02em;opacity:0.85;transition:opacity 0.15s;"
+    onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">Send Feedback</button>
 </div>
 
 <div id="controls">
@@ -615,6 +730,10 @@
 
   <div class="ctrl-sep"></div>
 
+<div class="ctrl-item">
+  <span class="ctrl-label">Layers</span>
+  <div style="display:flex; gap:8px; align-items:flex-start;">
+
 <!-- Dischargers toggle -->
   <div class="toggle-wrap" style="position:relative;">
     <label class="toggle-row" title="Show WWTP / discharger monitoring stations">
@@ -660,6 +779,20 @@
           </div>
         </div>
         <div>
+          <div style="font-size:11px;color:#666;margin-bottom:3px;">Type</div>
+          <div class="dropdown-btn" id="dtype-btn" onclick="toggleDropdown('dtype')" style="min-width:170px;">
+            <span id="dtype-label">All Types</span>
+            <span style="font-size:9px;color:#888;">&#9660;</span>
+          </div>
+          <div class="dropdown-panel" id="dtype-panel" style="min-width:230px;max-width:260px;">
+            <div class="dropdown-actions">
+              <span onclick="selectAllDropdown('dtype')">Select all</span>
+              <span onclick="clearDropdown('dtype')" style="color:#888;">Clear</span>
+            </div>
+            <div id="dtype-checkbox-list"></div>
+          </div>
+        </div>
+        <div>
           <div style="font-size:11px;color:#666;margin-bottom:3px;">Parameter</div>
           <div class="dropdown-btn" id="dparam-btn" onclick="toggleDropdown('dparam')" style="min-width:220px;">
             <span id="dparam-label" style="overflow:hidden;text-overflow:ellipsis;">All Parameters</span>
@@ -679,6 +812,7 @@
       </div>
     </div>
   </div>
+
 
   <!-- Transects toggle -->
   <div class="toggle-wrap">
@@ -707,17 +841,58 @@
     <div class="toggle-sub" id="gaps-status">Not loaded</div>
   </div>
 
-<!-- WEA toggle -->
-<div class="toggle-wrap">
-  <label class="toggle-row" title="Show CA Wind Energy Areas (Humboldt + Morro Bay)">
-    <input type="checkbox" id="wea-toggle" onchange="toggleWEA()">
-    <span>Wind Energy</span>
-  </label>
-  <div class="toggle-sub" id="wea-status">Not loaded</div>
+  <!-- Other Layers dropdown (Wind Energy, BeachWatch, SWQPA–ASBS) -->
+  <div class="toggle-wrap" style="position:relative;">
+    <div class="toggle-row" id="other-layers-btn" onclick="toggleOtherLayersPanel()" style="justify-content:space-between;">
+      <span id="other-layers-label">Other Layers</span>
+      <span style="font-size:9px;color:#888;font-weight:400;text-transform:none;">&#9660;</span>
+    </div>
+    <div class="toggle-sub">&nbsp;</div>
+    <div class="dropdown-panel" id="other-layers-panel" style="position:absolute;min-width:230px;max-width:260px;padding:4px 0;">
+
+      <!-- WEA toggle -->
+      <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
+        <label class="toggle-row" title="Show CA Wind Energy Areas (Humboldt + Morro Bay)">
+          <input type="checkbox" id="wea-toggle" onchange="toggleWEA();updateOtherLayersLabel()">
+          <span>Wind Energy</span>
+        </label>
+        <div id="wea-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
+          BOEM-designated offshore wind energy areas off Humboldt and Morro Bay.
+        </div>
+        <div class="toggle-sub" id="wea-status">Not loaded</div>
+      </div>
+
+      <!-- ASBS toggle -->
+      <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
+        <label class="toggle-row" title="Show State Water Quality Protection Areas — Areas of Special Biological Significance">
+          <input type="checkbox" id="asbs-toggle" onchange="toggleASBS();updateOtherLayersLabel()">
+          <span>SWQPA–ASBS</span>
+        </label>
+        <div id="asbs-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
+          State Water Quality Protection Areas – Areas of Special Biological Significance.
+        </div>
+        <div class="toggle-sub" id="asbs-status">Not loaded</div>
+      </div>
+
+      <!-- BeachWatch toggle -->
+      <div class="toggle-wrap" style="padding:8px 12px;margin:0;position:relative;">
+        <label class="toggle-row" title="Show State Water Board BeachWatch monitoring stations">
+          <input type="checkbox" id="beachwatch-toggle" onchange="toggleBeachWatch();updateOtherLayersLabel()">
+          <span>BeachWatch</span>
+        </label>
+        <div id="beachwatch-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
+          State Water Board program monitoring bacteria levels at California beaches to protect public health.
+        </div>
+        <div style="margin-top:4px;">
+          <div class="toggle-sub" id="beachwatch-status">Not loaded</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  </div>
 </div>
-
-
-
 
   <div class="ctrl-sep"></div>
 
@@ -887,6 +1062,41 @@
       </table>
     </div>
   </div>
+
+</div>
+
+<!-- Feedback modal — posts to a Google Form. Swap FEEDBACK_ENDPOINT and
+     FEEDBACK_ENTRIES in the script below with your own form's values. -->
+<div id="feedback-backdrop" onclick="closeFeedbackModal(event)">
+  <div id="feedback-modal" onclick="event.stopPropagation()">
+    <div class="feedback-modal-header">
+      <div class="feedback-modal-title">Send feedback</div>
+      <button class="feedback-modal-close" onclick="hideFeedbackModal()">✕</button>
+    </div>
+    <div class="feedback-modal-body">
+      <form id="feedback-form" onsubmit="submitFeedback(event)">
+        <label class="feedback-label" for="fb-working">What's working well?</label>
+        <textarea class="feedback-textarea" id="fb-working"
+          placeholder="e.g. the resolution toggle, the discharger filter"></textarea>
+
+        <label class="feedback-label" for="fb-improve">What needs improvement?</label>
+        <textarea class="feedback-textarea" id="fb-improve"
+          placeholder="e.g. hard to find a specific program, map loads slowly"></textarea>
+
+        <label class="feedback-label" for="fb-broken">Found something broken? <span class="feedback-optional">(optional)</span></label>
+        <textarea class="feedback-textarea" id="fb-broken"
+          placeholder="Describe the bug or confusing behavior"></textarea>
+
+        <label class="feedback-label" for="fb-email">Email <span class="feedback-optional">(optional)</span></label>
+        <input class="feedback-input" type="email" id="fb-email" placeholder="name@example.com">
+
+        <button type="submit" class="feedback-submit-btn" id="feedback-submit-btn">Submit</button>
+      </form>
+      <div id="feedback-thanks" class="feedback-thanks" style="display:none">
+        Thanks — your feedback was sent.
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -923,6 +1133,43 @@ const DISCHARGER_SOURCES = [
   { path: 'Dischargers/Dischargers.geojson', label: 'Dischargers', fillColor: '#6a9e9e', borderColor: '#3a6b6b' }
 ];
 
+// Facility type classification — from Water Board feedback: differentiate
+// wastewater treatment, desalination, and power plant discharger facilities.
+const FACILITY_TYPE_LOOKUP = {
+  'A. K. Warren Water Resource Facility':                    'Wastewater Treatment',
+  'Alamitos Generating Station':                              'Power Plant',
+  'Aliso Creek Ocean Outfall':                                'Other',
+  'City of Morro Bay Water Reclamation Facility':             'Wastewater Treatment',
+  'Claude Bud Lewis Carlsbad Desalination Plant':             'Desalination',
+  'Diablo Canyon Power Plant':                                'Power Plant',
+  'El Estero Water Resource Center':                          'Wastewater Treatment',
+  'Encina Ocean Outfall':                                     'Wastewater Treatment',
+  'Goleta Sanitary District Water Resource Recovery Facility':'Wastewater Treatment',
+  'Haynes Generating Station':                                'Power Plant',
+  'Huntington Beach Generating Station':                      'Power Plant',
+  'La Salina Wastewater Treatment Plant':                     'Wastewater Treatment',
+  'Monterey One Water Regional Treatment Plant':              'Wastewater Treatment',
+  'Orange County Sanitation District':                        'Wastewater Treatment',
+  'Oxnard Water Resource Recovery Facility':                  'Wastewater Treatment',
+  'Point Loma Wastewater Treatment Plant':                    'Wastewater Treatment',
+  'San Elijo Water Reclamation Facility':                     'Wastewater Treatment',
+  'San Juan Creek Ocean Outfall':                             'Other',
+  'Santa Cruz Wastewater Treatment Facility':                 'Wastewater Treatment',
+  'South Bay Water Reclamation Plant':                        'Wastewater Treatment',
+  'South San Luis Obispo Wastewater Treatment Facility':      'Wastewater Treatment',
+  'Terminal Island Water Reclamation Plant':                  'Wastewater Treatment',
+  'Ventura Water Reclamation Facility':                       'Wastewater Treatment',
+  'Watsonville Wastewater Treatment Facility':                'Wastewater Treatment'
+};
+// Unclassified/unverified names default to 'Other' rather than guessing —
+// only names explicitly listed above get a confident Wastewater Treatment/
+// Desalination/Power Plant label.
+function getFacilityType(name) { return FACILITY_TYPE_LOOKUP[name] || 'Other'; }
+
+const FACILITY_TYPES = ['Wastewater Treatment', 'Desalination', 'Power Plant', 'Other'];
+
+// Marker colors go back to per-facility (not per-type) — Type is used for
+// filtering and the popup's "Facility Type" row, not for map color.
 const DISCHARGER_PALETTE = [
   { fill: '#6a9e9e', border: '#3a6b6b' },
   { fill: '#9e7a7a', border: '#6b4a4a' },
@@ -931,18 +1178,17 @@ const DISCHARGER_PALETTE = [
   { fill: '#8a7a9e', border: '#5a4b6e' },
   { fill: '#9e9e8a', border: '#6b6b5a' }
 ];
-const dischargerColorMap = {};
-let dischargerPaletteIndex = 0;
-let hiddenDischargers = new Set();
-
 const DISCHARGER_COLOR_OVERRIDES = {
   'A. K. Warren Water Resource Facility': { fill: '#c0454e', border: '#7a2a2e' },
   'Haynes Generating Station':            { fill: '#4a7fa5', border: '#2a4f6a' }
 };
+const dischargerColorMap = {};
+let dischargerPaletteIndex = 0;
+let hiddenDischargers = new Set();
 
 function getDischargerColor(facilityName) {
   if (!dischargerColorMap[facilityName]) {
-    dischargerColorMap[facilityName] = 
+    dischargerColorMap[facilityName] =
       DISCHARGER_COLOR_OVERRIDES[facilityName] ||
       DISCHARGER_PALETTE[dischargerPaletteIndex % DISCHARGER_PALETTE.length];
     if (!DISCHARGER_COLOR_OVERRIDES[facilityName]) dischargerPaletteIndex++;
@@ -965,6 +1211,7 @@ function buildLegend() {
     document.getElementById('discharger-toggle').checked  ? { id: 'dischargers', label: 'Dischargers' } : null,
     document.getElementById('gaps-toggle').checked        ? { id: 'gaps',        label: 'Gaps' }        : null,
     document.getElementById('wea-toggle').checked ? { id: 'wea', label: 'Wind Energy' } : null,
+    document.getElementById('asbs-toggle').checked ? { id: 'asbs', label: 'ASBS Areas' } : null,
   ].filter(Boolean);
 
   // If active tab no longer exists, fall back to programs
@@ -983,7 +1230,12 @@ function buildLegend() {
       <button onclick="toggleAllPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#1a3a5c':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
       <button onclick="toggleAllPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn&&visiblePrograms.size===0?'#1a3a5c':'#f0f4f8'};color:${!allOn&&visiblePrograms.size===0?'white':'#444'};">All Off</button>
     </div>`;
-    Object.entries(programColors).sort().forEach(([name, color]) => {
+      const hexPrograms = new Set(
+        allFeatures.map(f => normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||''))
+      );
+      Object.entries(programColors).sort()
+        .filter(([name]) => hexPrograms.has(name))
+        .forEach(([name, color]) => {
       const visible = visiblePrograms.has(name);
       const safe = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const displayName = nameOverrides[name] || programFullNames[name] || name;
@@ -1019,15 +1271,37 @@ function buildLegend() {
       <button onclick="setAllDischargers(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#f0f4f8;color:#444;">All On</button>
       <button onclick="setAllDischargers(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#f0f4f8;color:#444;">All Off</button>
     </div>`;
+
+    // Build set of names currently rendered (not hidden by param/name filter)
+    const selectedDNames  = getCheckedValues('dname');
+    const selectedDParams = getCheckedValues('dparam');
+    const filteredNames = new Set(
+      allDischargerFeatures
+        .filter(f => {
+          const name = valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name'])||'';
+          const paramStr = valD(f.properties['parameter'])||valD(f.properties['parameters'])||'';
+          if (selectedDNames.length > 0 && !selectedDNames.includes(name)) return false;
+          if (selectedDParams.length > 0 && !selectedDParams.some(p =>
+            paramStr.split(';').map(s=>s.trim()).some(raw => dparamCanonical(raw) === p)
+          )) return false;
+          return true;
+        })
+        .map(f => valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name']))
+    );
+
+    const hasFilter = selectedDNames.length > 0 || selectedDParams.length > 0;
+
     Object.entries(dischargerColorMap).sort().forEach(([name, colors]) => {
       const feat = allDischargerFeatures.find(f =>
         (valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name'])) === name
       );
       const acronym = feat ? (valD(feat.properties['acrynom'])||valD(feat.properties['acronym'])||name) : name;
-      const visible = !hiddenDischargers.has(name);
+      const toggled = !hiddenDischargers.has(name);
+      // Gray out if a filter is active and this discharger has no matching features
+      const matchesFilter = !hasFilter || filteredNames.has(name);
       const safe = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      bodyHtml += `<div class="legend-item${visible?'':' hidden-prog'}" onclick="toggleDischargerFacility('${safe}',${!visible})" title="${name}">
-        <input type="checkbox" ${visible?'checked':''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="toggleDischargerFacility('${safe}',this.checked)">
+      bodyHtml += `<div class="legend-item${(!toggled || !matchesFilter) ? ' hidden-prog' : ''}" onclick="toggleDischargerFacility('${safe}',${!toggled})" title="${name}">
+        <input type="checkbox" ${toggled ? 'checked' : ''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="toggleDischargerFacility('${safe}',this.checked)">
         <div class="legend-circle" style="background:${colors.fill};border-color:${colors.border};flex-shrink:0;"></div>
         <span style="font-size:12px;">${acronym}</span></div>`;
     });
@@ -1143,6 +1417,33 @@ function buildLegend() {
   `;
 }
 
+  else if (legendActiveTab === 'asbs') {
+
+    const asbsPrograms = [...new Set(
+      allASBSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+    )].sort();
+
+    if (!window.visibleASBSPrograms) window.visibleASBSPrograms = new Set(asbsPrograms);
+    const allOn = asbsPrograms.every(p => visibleASBSPrograms.has(p));
+
+    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
+      <button onclick="setAllASBSPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#6a4c93':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
+      <button onclick="setAllASBSPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn?'#6a4c93':'#f0f4f8'};color:${!allOn?'white':'#444'};">All Off</button>
+    </div>`;
+
+    asbsPrograms.forEach(prog => {
+      const color = getColor(prog);
+      const visible = visibleASBSPrograms.has(prog);
+      const safe = prog.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      bodyHtml += `<div class="legend-item${visible?'':' hidden-prog'}" onclick="toggleASBSProgram('${safe}',${!visible})">
+        <input type="checkbox" ${visible?'checked':''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="toggleASBSProgram('${safe}',this.checked)">
+        <div class="legend-swatch" style="background:${color};border-color:${color};"></div>
+        <span>${nameOverrides[prog] || programFullNames[prog] || prog}</span></div>`;
+    });
+
+    bodyHtml += `<div style="font-size:11px;color:#888;padding:4px 3px 0 3px;">Monitoring inside SWQPA–ASBS boundaries</div>`;
+  }
+
   const multiClass = tabs.length > 1 ? 'multi-tab' : '';
   const prevScroll = document.getElementById('legend-body') ? document.getElementById('legend-body').scrollTop : 0;
   legend.innerHTML = `<div id="legend-tabs" class="${multiClass}">${tabsHtml}</div><div id="legend-body">${bodyHtml}</div>`;
@@ -1226,6 +1527,10 @@ const DISCH_PRIORITY = ['station_type','facility_name','discharger','wwtp_name',
 
 let bathyLayer  = null;
 let bathyLoaded = false;
+
+let allBeachWatchFeatures = [];
+let beachWatchLayer  = L.layerGroup();
+let beachWatchLoaded = false;
 
 const NS = 'http://www.w3.org/2000/svg';
 function addEl(parent, tag, attrs) {
@@ -1343,9 +1648,11 @@ function makeDischargerPopup(p) {
   'monitoring_program_per_section','Monitoring_program_per_section',
   'notes','Notes',
   'latitude_dms_as_in_permit','Latitude_dms_as_in_permit',
-  'longitude_dms_as_in_permit','Longitude_dms_as_in_permit', 'Monitoring Program'
+  'longitude_dms_as_in_permit','Longitude_dms_as_in_permit', 'Monitoring Program',
+  'facility_type'
 ]);
   let rows = '<tr class="dp-section-head"><td colspan="2">Station Details</td></tr>';
+  if (valD(p['facility_type'])) rows += drow('Facility Type', valD(p['facility_type']));
   if (valD(p['station_type'])) rows += drow('Station Type', valD(p['station_type']));
   Object.keys(p).filter(k=>!skipAll.has(k)&&valD(p[k])).sort().forEach(k=>{ rows += drow(prettifyKey(k), valD(p[k])); });
   if (valD(p['frequency'])) rows += drow('Frequency', valD(p['frequency']));
@@ -1382,9 +1689,25 @@ function loadDischargers() {
     const existingNames = new Set(), nameEntries = [];
     allDischargerFeatures.forEach(f=>{
       const name = valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name']);
+      if (name) f.properties['facility_type'] = getFacilityType(name);
       if (name&&!existingNames.has(name)) { existingNames.add(name); nameEntries.push(name); }
     });
     nameEntries.sort().forEach(name=>addCheckboxOption('dname-checkbox-list',name));
+
+    const typeList = document.getElementById('dtype-checkbox-list');
+    FACILITY_TYPES.filter(t=>nameEntries.some(n=>getFacilityType(n)===t)).forEach(type=>{
+      const count = nameEntries.filter(n=>getFacilityType(n)===type).length;
+      const id = 'chk-dtype-'+type.replace(/[^a-zA-Z0-9]/g,'-');
+      const div = document.createElement('div');
+      div.className = 'param-option'; div.dataset.val = type.toLowerCase();
+      div.innerHTML = `<input type="checkbox" id="${id}" value="${type}" onchange="updateDropdownLabel('dtype')">
+        <label for="${id}" style="cursor:pointer;flex:1;margin:0;display:flex;align-items:center;gap:7px;white-space:nowrap;">
+          <span style="flex:none;white-space:nowrap;">${type}</span>
+          <span style="flex-shrink:0;flex:none;width:19px;height:19px;border-radius:50%;background:#eef1f4;color:#666;font-weight:700;font-size:10px;display:inline-flex;align-items:center;justify-content:center;">${count}</span>
+        </label>`;
+      typeList.appendChild(div);
+    });
+
     const existingParams = new Set(), paramEntries = [];
     allDischargerFeatures.forEach(f=>{
       const paramStr = valD(f.properties['parameter'])||valD(f.properties['parameters'])||'';
@@ -1432,6 +1755,91 @@ function renderDischargers(features) {
   });
 }
 
+function makeBeachWatchPopup(feature) {
+  const p = feature.properties || {};
+  const coords = (feature.geometry && feature.geometry.coordinates) || [];
+  const lon = coords[0], lat = coords[1];
+  const latStr = (typeof lat === 'number') ? lat.toFixed(5) : '—';
+  const lonStr = (typeof lon === 'number') ? lon.toFixed(5) : '—';
+  const rows = `
+    <tr><td>County</td><td>${p.county||'—'}</td></tr>
+    <tr><td>Latitude</td><td>${latStr}</td></tr>
+    <tr><td>Longitude</td><td>${lonStr}</td></tr>
+  `;
+  return `<div class="bw-header"><div class="bw-title">${p.beach_name||'BeachWatch Station'}</div><div class="bw-subtitle"><b>Station:</b> ${p.station_name||'—'}</div></div><table class="bw-table">${rows}</table>`;
+}
+
+function getBeachWatchRadius() {
+  const z = map.getZoom();
+  if (z <= 6) return 3;
+  if (z <= 7) return 4;
+  if (z <= 8) return 5;
+  if (z <= 9) return 6.5;
+  if (z <= 10) return 8;
+  if (z <= 11) return 9.5;
+  return 11;
+}
+
+function loadBeachWatch() {
+  const statusEl = document.getElementById('beachwatch-status');
+  statusEl.textContent = 'Loading…';
+  fetch('BeachWatch.geojson').then(r=>{
+    if(!r.ok) throw new Error('BeachWatch.geojson not found (HTTP '+r.status+')');
+    return r.json();
+  }).then(data=>{
+    allBeachWatchFeatures = data.features||[];
+    beachWatchLoaded = true;
+    document.getElementById('beachwatch-desc').style.display = 'block';
+    renderBeachWatch(allBeachWatchFeatures);
+    statusEl.textContent = allBeachWatchFeatures.length.toLocaleString()+' stations';
+  }).catch(err=>{
+    document.getElementById('beachwatch-toggle').checked=false;
+    statusEl.textContent='⚠ '+err.message;
+    beachWatchLayer.remove();
+  });
+}
+
+function renderBeachWatch(features) {
+  beachWatchLayer.clearLayers();
+  const r = getBeachWatchRadius();
+  features.forEach(feature=>{
+    const layer = L.geoJSON(feature,{
+      pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:r,fillColor:'#e0a458',color:'#8a5a1e',weight:1,opacity:1,fillOpacity:0.85}),
+      onEachFeature:(f,lyr)=>{
+        lyr.bindPopup(makeBeachWatchPopup(f),{maxWidth:340,maxHeight:400});
+        lyr.on('mouseover',function(){this.setStyle({fillOpacity:1,radius:getBeachWatchRadius()+3});});
+        lyr.on('mouseout', function(){this.setStyle({fillOpacity:0.85,radius:getBeachWatchRadius()});});
+      }
+    });
+    layer.addTo(beachWatchLayer);
+  });
+}
+
+map.on('zoomend', function() {
+  if (document.getElementById('beachwatch-toggle').checked) {
+    beachWatchLayer.eachLayer(topLevel=>{
+      topLevel.eachLayer(l=>{ if (l.setRadius) l.setRadius(getBeachWatchRadius()); });
+    });
+  }
+});
+
+function toggleBeachWatch() {
+  const on = document.getElementById('beachwatch-toggle').checked;
+  if (on) {
+    beachWatchLayer.addTo(map);
+    if (!beachWatchLoaded) loadBeachWatch();
+    else {
+      document.getElementById('beachwatch-desc').style.display = 'block';
+      renderBeachWatch(allBeachWatchFeatures);
+      document.getElementById('beachwatch-status').textContent = allBeachWatchFeatures.length.toLocaleString()+' stations';
+    }
+  } else {
+    beachWatchLayer.remove();
+    document.getElementById('beachwatch-status').textContent='Hidden';
+    document.getElementById('beachwatch-desc').style.display='none';
+  }
+}
+
 function toggleDischargers() {
   const on = document.getElementById('discharger-toggle').checked;
   if (on) legendActiveTab = 'dischargers';
@@ -1449,6 +1857,8 @@ function toggleDischargers() {
     document.getElementById('dname-label').textContent = 'All Dischargers';
     document.querySelectorAll('#dparam-checkbox-list input').forEach(i=>i.checked=false);
     document.getElementById('dparam-label').textContent = 'All Parameters';
+    document.querySelectorAll('#dtype-checkbox-list input').forEach(i=>i.checked=false);
+    document.getElementById('dtype-label').textContent = 'All Types';
     document.getElementById('discharger-status').textContent='Hidden';
   }
   buildLegend();
@@ -1553,6 +1963,123 @@ function loadGaps() {
     });
 }
 
+let asbsLayer = L.layerGroup();
+let asbsLoaded = false;
+let asbsHexLayer = L.layerGroup();
+let asbsHexLoaded = false;
+let allASBSHexFeatures = [];
+let visibleASBSPrograms = new Set();
+
+function loadASBS() {
+  const statusEl = document.getElementById('asbs-status');
+  statusEl.textContent = 'Loading…';
+  fetch('ASBS.geojson').then(r=>{
+    if(!r.ok) throw new Error('ASBS.geojson not found (HTTP '+r.status+')');
+    return r.json();
+  }).then(data=>{
+    asbsLoaded = true;
+    if (!map.getPane('asbsPane')) {
+      map.createPane('asbsPane');
+      map.getPane('asbsPane').style.zIndex = 300;
+      map.getPane('asbsPane').style.pointerEvents = 'none';
+    }
+    L.geoJSON(data, {
+      pane: 'asbsPane',
+      style: { color: '#6a4c93', weight: 1.5, dashArray: '4 3', fillColor: '#9b7fc7', fillOpacity: 0.15 }
+    }).addTo(asbsLayer);
+    statusEl.textContent = data.features.length + ' areas';
+  }).catch(err=>{
+    document.getElementById('asbs-toggle').checked = false;
+    statusEl.textContent = '⚠ ' + err.message;
+    asbsLayer.remove();
+  });
+}
+
+// ── ASBS hex layer — same "clip the main inventory to just these
+// boundaries" pattern as the WEA hex layer, so you can see monitoring
+// density specifically inside ASBS areas. ──
+function renderASBSHexes() {
+  asbsHexLayer.clearLayers();
+  if (!document.getElementById('asbs-toggle').checked) return;
+
+  const selectedParams = getCheckedValues('param');
+  const selectedEovs   = getCheckedValues('eov');
+
+  let visibleCount = 0;
+  allASBSHexFeatures.forEach(f => {
+    const p = f.properties || {};
+    const prog = normalizeProgram(getProp(p, 'Program Name', 'Program.Name') || 'Unknown');
+    if (!visibleASBSPrograms.has(prog)) return;
+
+    if (selectedParams.length > 0) {
+      const params = getProp(p, 'Parameters', 'parameters');
+      if (!selectedParams.some(sp => params.includes(sp))) return;
+    }
+    if (selectedEovs.length > 0) {
+      const eovGroups = getProp(p, 'EOV Groups', 'EOV.Groups');
+      if (!selectedEovs.some(ev => eovGroups.includes(ev))) return;
+    }
+
+    visibleCount++;
+    if (!programColors[prog]) programColors[prog] = colorList[Object.keys(programColors).length % colorList.length];
+    const color = programColors[prog];
+
+    const layer = L.geoJSON(f, {
+      style: { color: color, weight: 1, fillColor: color, fillOpacity: 0.5, dashArray: '4 3' }
+    });
+    layer.bindPopup(() => buildHexPopup(p), { maxWidth: 400, maxHeight: 520 });
+    layer.on('mouseover', function(){ this.setStyle({ weight: 2.5, fillOpacity: 0.75 }); });
+    layer.on('mouseout',  function(){ this.setStyle({ weight: 1, fillOpacity: 0.5 }); });
+    layer.addTo(asbsHexLayer);
+  });
+
+  const statusEl = document.getElementById('asbs-status');
+  if (statusEl && document.getElementById('asbs-toggle').checked) {
+    statusEl.textContent = visibleCount + ' hex cells inside ASBS';
+  }
+}
+
+function loadASBSHexes(res) {
+  asbsHexLayer.clearLayers();
+  if (!document.getElementById('asbs-toggle').checked) return;
+  loadGzipGeoJSON('Master_ASBS_' + res + '.geojson.gz')
+    .then(data => {
+      allASBSHexFeatures = data.features;
+      const progs = [...new Set(allASBSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown')))];
+      visibleASBSPrograms = new Set(progs);
+      asbsHexLoaded = true;
+      renderASBSHexes();
+      if (document.getElementById('asbs-toggle').checked) {
+        asbsHexLayer.addTo(map);
+        buildLegend();
+      }
+    })
+    .catch(err => console.warn('ASBS hex load failed:', err.message));
+}
+
+function toggleASBS() {
+  const on = document.getElementById('asbs-toggle').checked;
+  document.getElementById('asbs-desc').style.display = on ? 'block' : 'none';
+  if (on) legendActiveTab = 'asbs';
+  if (on) {
+    asbsLayer.addTo(map);
+    if (!asbsLoaded) loadASBS();
+    else document.getElementById('asbs-status').textContent = 'Loaded';
+    if (!asbsHexLoaded) {
+      loadASBSHexes(currentRes);
+    } else {
+      renderASBSHexes();
+      asbsHexLayer.addTo(map);
+    }
+  } else {
+    asbsLayer.remove();
+    asbsHexLayer.remove();
+    legendActiveTab = 'programs';
+    document.getElementById('asbs-status').textContent = 'Hidden';
+  }
+  buildLegend();
+}
+
 function toggleGaps() {
   const on = document.getElementById('gaps-toggle').checked;
   if (on) legendActiveTab = 'gaps'; 
@@ -1636,6 +2163,23 @@ function setAllWEAPrograms(on) {
     weaHexLayer.addTo(map);
   }
 
+  buildLegend();
+}
+
+function toggleASBSProgram(name, on) {
+  if (on) visibleASBSPrograms.add(name); else visibleASBSPrograms.delete(name);
+  renderASBSHexes();
+  if (document.getElementById('asbs-toggle').checked) asbsHexLayer.addTo(map);
+  buildLegend();
+}
+
+function setAllASBSPrograms(on) {
+  const asbsPrograms = [...new Set(
+    allASBSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+  )];
+  visibleASBSPrograms = on ? new Set(asbsPrograms) : new Set();
+  renderASBSHexes();
+  if (document.getElementById('asbs-toggle').checked) asbsHexLayer.addTo(map);
   buildLegend();
 }
 
@@ -1754,6 +2298,7 @@ function loadWeaHexes(res) {
 
 function toggleWEA() {
   const on = document.getElementById('wea-toggle').checked;
+  document.getElementById('wea-desc').style.display = on ? 'block' : 'none';
   if (on) legendActiveTab = 'wea'; 
   if (on) {
     if (!weaLoaded) {
@@ -1998,6 +2543,10 @@ function switchResolution(res) {
         weaHexLoaded = false;
         loadWeaHexes(res);
       }
+    if (document.getElementById('asbs-toggle').checked) {
+        asbsHexLoaded = false;
+        loadASBSHexes(res);
+      }
     return;
   }
 
@@ -2015,6 +2564,11 @@ function switchResolution(res) {
         weaHexLayer.clearLayers();
         weaHexLoaded = false;
         loadWeaHexes(res);
+      }
+      if (document.getElementById('asbs-toggle').checked) {
+        asbsHexLayer.clearLayers();
+        asbsHexLoaded = false;
+        loadASBSHexes(res);
       }
     
       buildLegend();
@@ -2059,13 +2613,7 @@ let polygonOverlayLayer = L.layerGroup().addTo(map);
 
 let chisPolygonLayer = null;
 let mpaPolygonLayer = null;
-const POLYGON_ONLY_PROGRAMS = new Set([
-  'CA MPAs', 
-  'Channel Islands', 
-  'CHIS', 
-  'Marine Protected Areas & Ocean Protection Council',  // ← add this
-  'MPAs & OPC'
-]);
+
 
 fetch('Master_Polygons.geojson')
   .then(r => { if (!r.ok) throw new Error('Master_Polygons.geojson not found'); return r.json(); })
@@ -2224,8 +2772,8 @@ const nameOverrides = {
   'NOAA IWCPS':       'NOAA Integrated West Coast Protected Species Survey',
   'NOAA RREAS':       'NOAA Rockfish Recruitment and Ecosystem Assessment Survey',
   'SCCWRP':           'Southern California Coastal Water Research Project',
-  'SWRCB':            'State Water Resources Control Board – Beach Report Card',
-  'NOAA SWFSC':       'NOAA Southwest Fisheries Science Center',
+  'SWRCB':            'State Water Resources Control Board – BeachWatch Program',
+  'NOAA SWFSC-CalCOFI':       'NOAA Southwest Fisheries Science Center-California Cooperative Oceanic Fisheries Investigations',
   'NOAA THL':         'NOAA Trinidad Head Line',
   'NOAA WCOA':        'NOAA West Coast Ocean Acidification Program',
   'PnB': 'Plumes and Blooms Survey',
@@ -2260,10 +2808,16 @@ function toggleProgram(prog, on) {
 }
 
 function toggleAllPrograms(on) {
-  if(on) Object.keys(programColors).forEach(p => {
-    if (!POLYGON_ONLY_PROGRAMS.has(p)) visiblePrograms.add(p);
-  });
-  else visiblePrograms.clear();
+  const hexPrograms = new Set(
+    allFeatures.map(f => normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||''))
+  );
+  if (on) {
+    Object.keys(programColors)
+      .filter(p => hexPrograms.has(p))
+      .forEach(p => visiblePrograms.add(p));
+  } else {
+    visiblePrograms.clear();
+  }
   syncProgDropdown();
   renderFeatures(currentFiltered);
   updateStatus(countVisible());
@@ -2318,7 +2872,33 @@ const DROPDOWNS = {
   eov:    {btn:'eov-btn',   panel:'eov-panel',   list:'eov-checkbox-list',   search:null,           label:'eov-label',   default:'All'},
   dname:  {btn:'dname-btn', panel:'dname-panel', list:'dname-checkbox-list', search:'dname-search', label:'dname-label', default:'All'},
   dparam: {btn:'dparam-btn',panel:'dparam-panel',list:'dparam-checkbox-list',search:'dparam-search',label:'dparam-label',default:'All'},
+  dtype:  {btn:'dtype-btn', panel:'dtype-panel', list:'dtype-checkbox-list', search:null,           label:'dtype-label', default:'All'},
 };
+
+function toggleOtherLayersPanel() {
+  const panel = document.getElementById('other-layers-panel');
+  const isOpen = panel.style.display === 'block';
+  if (isOpen) { panel.style.display = 'none'; return; }
+  const btnEl = document.getElementById('other-layers-btn');
+  const btnRect = btnEl.getBoundingClientRect();
+  panel.style.top = (btnRect.height + 4) + 'px';
+  panel.style.left = '0';
+  panel.style.display = 'block';
+}
+
+function updateOtherLayersLabel() {
+  const ids = ['wea-toggle','asbs-toggle','beachwatch-toggle'];
+  const n = ids.filter(id => document.getElementById(id).checked).length;
+  document.getElementById('other-layers-label').textContent = n > 0 ? 'Other Layers (' + n + ')' : 'Other Layers';
+}
+
+document.addEventListener('click', function(e) {
+  const btn = document.getElementById('other-layers-btn');
+  const panel = document.getElementById('other-layers-panel');
+  if (btn && panel && !btn.contains(e.target) && !panel.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
 
 function toggleDropdown(id) {
   const d=DROPDOWNS[id];
@@ -2352,7 +2932,7 @@ function updateDropdownLabel(id) {
   if(checked.length===0) label.textContent=d.default;
   else if(checked.length===1) label.textContent=checked[0].value;
   else label.textContent=checked.length+' selected';
-  if(id==='dname'||id==='dparam') applyDischargerFilters();
+  if(id==='dname'||id==='dparam'||id==='dtype') applyDischargerFilters();
   else applyFilters();
 }
 function selectAllDropdown(id) {
@@ -2527,24 +3107,26 @@ function applyFilters() {
     return true;
   });
 
-  // Determine which programs to show
-  if(selectedProgs.length > 0) {
+ // Determine which programs to show
+  visiblePrograms.clear();
+    const totalHexProgs = new Set(
+    allFeatures.map(f => normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||''))
+  ).size;
+
+  if (selectedProgs.length > 0 && selectedProgs.length < totalHexProgs) {
     // Explicit program filter wins
-    visiblePrograms.clear();
     selectedProgs.forEach(p => visiblePrograms.add(p));
-  } else if(selectedParams.length > 0 || selectedEovs.length > 0) {
+  } else if (selectedParams.length > 0 || selectedEovs.length > 0) {
     // Auto-narrow to only programs present in filtered results
-    visiblePrograms.clear();
     currentFiltered.forEach(f => {
       const prog = normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'');
-      if(prog) visiblePrograms.add(prog);
+      if (prog) visiblePrograms.add(prog);
     });
   } else {
     // No filters — show all
-    visiblePrograms.clear();
     allFeatures.forEach(f => {
       const prog = normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'');
-      if(prog && !POLYGON_ONLY_PROGRAMS.has(prog)) visiblePrograms.add(prog);
+      if (prog) visiblePrograms.add(prog);
     });
   }
 
@@ -2572,6 +3154,7 @@ function applyFilters() {
 function applyDischargerFilters() {
   const selectedNames  = getCheckedValues('dname');
   const selectedParams = getCheckedValues('dparam');
+  const selectedTypes  = getCheckedValues('dtype');
 
   if (selectedNames.length > 0) {
     hiddenDischargers = new Set(
@@ -2585,6 +3168,7 @@ function applyDischargerFilters() {
     const name = valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name'])||'';
     const paramStr = valD(f.properties['parameter'])||valD(f.properties['parameters'])||'';
     if(selectedNames.length>0 && !selectedNames.includes(name)) return false;
+    if(selectedTypes.length>0 && !selectedTypes.includes(getFacilityType(name))) return false;
     if(selectedParams.length>0 && !selectedParams.some(p=>
       paramStr.split(';').map(s=>s.trim()).some(raw => dparamCanonical(raw) === p)
     )) return false;
@@ -2607,7 +3191,7 @@ function resetFilters() {
   visiblePrograms.clear();
   allFeatures.forEach(f => {
     const prog = normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'');
-    if(prog && !POLYGON_ONLY_PROGRAMS.has(prog)) visiblePrograms.add(prog);
+    if(prog) visiblePrograms.add(prog);
   });
   if (allWeaHexFeatures.length > 0) {
     visibleWEAPrograms = new Set(
@@ -3632,6 +4216,50 @@ const DPARAM_CANONICAL = {
 
 function dparamCanonical(raw) {
   return DPARAM_CANONICAL[raw] || raw;
+}
+
+// ── FEEDBACK — posts to a Google Form; no backend needed. ──
+// 1. Create a Google Form with your questions.
+// 2. Open the live form, View Page Source, search "entry." to find each
+//    question's hidden field id, and search "formResponse" for the POST URL.
+// 3. Replace the placeholder values below with your real ones.
+const FEEDBACK_ENDPOINT = 'https://docs.google.com/forms/d/e/1FAIpQLSf4Gj2vNGEw6aR2QzqUetIb9S7sSDtMcLLiCG9eia2xHBLVkw/formResponse';
+const FEEDBACK_ENTRIES = {
+  working: 'entry.776933298',
+  improve: 'entry.1913371976',
+  broken:  'entry.1714444848',
+  email:   'entry.765283935'
+};
+function showFeedbackModal() {
+  document.getElementById('feedback-backdrop').classList.add('open');
+}
+function hideFeedbackModal() {
+  document.getElementById('feedback-backdrop').classList.remove('open');
+  document.getElementById('feedback-form').style.display = '';
+  document.getElementById('feedback-thanks').style.display = 'none';
+}
+function closeFeedbackModal(e) { if (e.target.id === 'feedback-backdrop') hideFeedbackModal(); }
+function submitFeedback(e) {
+  e.preventDefault();
+  const btn = document.getElementById('feedback-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  const fd = new FormData();
+  fd.append(FEEDBACK_ENTRIES.working, document.getElementById('fb-working').value);
+  fd.append(FEEDBACK_ENTRIES.improve, document.getElementById('fb-improve').value);
+  fd.append(FEEDBACK_ENTRIES.broken, document.getElementById('fb-broken').value);
+  fd.append(FEEDBACK_ENTRIES.email, document.getElementById('fb-email').value);
+  fetch(FEEDBACK_ENDPOINT, { method: 'POST', mode: 'no-cors', body: fd })
+    .then(() => {
+      document.getElementById('feedback-form').style.display = 'none';
+      document.getElementById('feedback-thanks').style.display = 'block';
+      document.getElementById('feedback-form').reset();
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+      alert('Something went wrong sending that — check your connection and try again.');
+    });
 }
 
 </script>
