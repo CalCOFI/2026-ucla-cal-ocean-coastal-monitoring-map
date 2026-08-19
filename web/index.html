@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) — CalCOFI site property.
+     GENERATED/COPIED from CalCOFI/analytics → snippets/gtag-site.html.
+     Change only ucla-monitoring-map; keep the rest byte-identical across sites so
+     one snippet edit can be rolled out mechanically. `content_group` is what
+     the usage report at calcofi.io/analytics/ joins on. -->
+<script>
+  // hostname guard: keeps local previews and forks out of the property,
+  // without depending on a build-system flag (these sites are built five
+  // different ways).
+  window.__CC_GA = location.hostname.endsWith("calcofi.io")
+                   && !navigator.webdriver;   // skip Playwright/Puppeteer/shot-scraper
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0HVK8TDMCF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  if (window.__CC_GA) {
+    gtag('js', new Date());
+    gtag('config', 'G-0HVK8TDMCF', { content_group: 'ucla-monitoring-map' });
+  }
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Google tag (gtag.js) -->
