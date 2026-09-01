@@ -2761,7 +2761,7 @@ const nameOverrides = {
   'CCFRP':            'California Collaborative Fisheries Research Program',
   'CCLEAN':           'California Coastal Long-term Environmental Assessment Network',
   'CPS Survey':       'Coastal Pelagic Species Survey',
-  'CUGN':             'California Undercurrent Glider Network',
+  'CUGN':             'California Underwater Glider Network',
   'CalCOFI':          'California Cooperative Oceanic Fisheries Investigations',
   'CalPoly Humboldt': 'Cal Poly Humboldt',
   'CeNCOOS':          'Central and Northern California Ocean Observing System',
@@ -2771,6 +2771,7 @@ const nameOverrides = {
   'NOAA GDP':         'NOAA Global Drifter Program',
   'NOAA IWCPS':       'NOAA Integrated West Coast Protected Species Survey',
   'NOAA RREAS':       'NOAA Rockfish Recruitment and Ecosystem Assessment Survey',
+  'SCCOOS':           'Southern California Coastal Ocean Observing System',
   'SCCWRP':           'Southern California Coastal Water Research Project',
   'SWRCB':            'State Water Resources Control Board – BeachWatch Program',
   'NOAA SWFSC-CalCOFI':       'NOAA Southwest Fisheries Science Center-California Cooperative Oceanic Fisheries Investigations',
@@ -2954,7 +2955,7 @@ function addCheckboxOption(listId, value, label) {
   const ddId=Object.keys(DROPDOWNS).find(k=>DROPDOWNS[k].list===listId);
   const list=document.getElementById(listId);
   const div=document.createElement('div');
-  div.className='param-option'; div.dataset.val=value.toLowerCase();
+  div.className='param-option'; div.dataset.val=(value+' '+(label||'')).toLowerCase();
   const id='chk-'+listId+'-'+value.replace(/[^a-zA-Z0-9]/g,'-');
   div.innerHTML=`<input type="checkbox" id="${id}" value="${value}" onchange="updateDropdownLabel('${ddId}')"> <label for="${id}" style="cursor:pointer;flex:1;margin:0;">${label||value}</label>`;
   list.appendChild(div);
@@ -3040,7 +3041,7 @@ function renderFeatures(features) {
 
 function buildHexPopup(p) {
   const progName  =normalizeProgram(getProp(p,'Program Name','Program.Name'));
-  const fullName  =getProp(p,'Full Program Name','Full.Program.Name');
+  const fullName  =nameOverrides[progName] || getProp(p,'Full Program Name','Full.Program.Name');
   const parametersRaw = getProp(p,'Parameters','parameters');
   const parameters = parametersRaw
     ? [...new Set(parametersRaw.split(';').map(s => s.trim()).filter(Boolean))].join('; ')
