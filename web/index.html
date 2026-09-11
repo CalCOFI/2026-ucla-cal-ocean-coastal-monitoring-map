@@ -416,6 +416,72 @@
   color: #222;
 }
 
+/* ── Inclusion-criteria callout ───────────────────────────── */
+/* A child of #welcome-card (which has position:relative), anchored to the
+   card's own LEFT edge with position:absolute — this keeps the card itself
+   perfectly centered (the callout hangs off it, doesn't affect its layout)
+   and keeps a fixed, tight gap regardless of viewport width. Styled to match
+   the site's own navy palette instead of a clashing amber, and shaped like
+   an actual callout with a tail pointing back at the card. */
+#criteria-callout {
+  position: absolute;
+  top: 22px;
+  right: 100%;
+  margin-right: 18px;
+  width: 380px;
+
+  background: #f4f7fa;
+  border: 1px solid #c7d3e0;
+  border-right: 5px solid #1a3a5c;
+  border-radius: 10px;
+  padding: 22px 22px 22px 26px;
+
+  font-size: 17px;
+  line-height: 1.55;
+  color: #444;
+
+  box-shadow: 0 8px 22px rgba(0,0,0,0.16);
+  z-index: 5001;
+}
+
+/* Speech-bubble tail pointing back at the welcome card */
+#criteria-callout-arrow {
+  position: absolute;
+  top: 30px;
+  right: -11px;
+  width: 0;
+  height: 0;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 11px solid #1a3a5c;
+}
+
+#criteria-callout-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a3a5c;
+  margin-bottom: 11px;
+}
+
+#criteria-callout a {
+  color: #1a3a5c;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* Below ~1180px there isn't room beside the 760px-wide welcome card —
+   drop the callout below the card's content instead of hanging off the side */
+@media (max-width: 1300px) {
+  #criteria-callout {
+    position: static;
+    width: auto;
+    margin: 0 0 14px 0;
+  }
+  #criteria-callout-arrow {
+    display: none;
+  }
+}
+
 #welcome-top {
   display: flex;
   gap: 18px;
@@ -662,8 +728,11 @@
 <div id="header">
   <span>California Ocean &amp; Coastal Monitoring Inventory</span>
   <span id="header-disclaimer">&#9432; Includes monitoring within 12 nautical miles of the California coast only</span>
+  <button id="criteria-btn" onclick="window.open(CRITERIA_DOC_URL, '_blank')"
+    style="margin-left:auto;align-self:center;background:none;color:#ffffff;border:none;border-bottom:1px solid rgba(255,255,255,0.85);padding:0 0 2px 0;font-size:12px;font-weight:400;cursor:pointer;white-space:nowrap;letter-spacing:0.02em;opacity:0.85;transition:opacity 0.15s;"
+    onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">See Something Missing?</button>
   <button id="feedback-btn" onclick="showFeedbackModal()"
-    style="margin-left:auto;align-self:center;background:none;color:#ffffff;border:none;padding:0;font-size:12px;font-weight:400;cursor:pointer;white-space:nowrap;letter-spacing:0.02em;opacity:0.85;transition:opacity 0.15s;"
+    style="align-self:center;background:none;color:#ffffff;border:none;padding:0;font-size:12px;font-weight:400;cursor:pointer;white-space:nowrap;letter-spacing:0.02em;opacity:0.85;transition:opacity 0.15s;"
     onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">Send Feedback</button>
 </div>
 
@@ -874,6 +943,30 @@
         <div class="toggle-sub" id="asbs-status">Not loaded</div>
       </div>
 
+      <!-- MPA toggle -->
+      <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
+        <label class="toggle-row" title="Show monitoring inside California Marine Protected Areas (open coast only)">
+          <input type="checkbox" id="mpa-toggle" onchange="toggleMPA();updateOtherLayersLabel()">
+          <span>MPAs (Open Coast)</span>
+        </label>
+        <div id="mpa-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
+          California Marine Protected Areas along the open coast — excludes San Francisco Bay and enclosed bays/estuaries/lagoons. Source: CDFW.
+        </div>
+        <div class="toggle-sub" id="mpa-status">Not loaded</div>
+      </div>
+
+      <!-- NMS toggle -->
+      <div class="toggle-wrap" style="padding:8px 12px;margin:0;">
+        <label class="toggle-row" title="Show monitoring inside California's 4 National Marine Sanctuaries">
+          <input type="checkbox" id="nms-toggle" onchange="toggleNMS();updateOtherLayersLabel()">
+          <span>NMS (Sanctuaries)</span>
+        </label>
+        <div id="nms-desc" style="display:none;font-size:11px;line-height:1.4;color:#666;margin-top:2px;max-width:220px;">
+          California's 4 National Marine Sanctuaries — Channel Islands, Chumash Heritage, Greater Farallones, and Monterey Bay. Source: NOAA ONMS.
+        </div>
+        <div class="toggle-sub" id="nms-status">Not loaded</div>
+      </div>
+
       <!-- BeachWatch toggle -->
       <div class="toggle-wrap" style="padding:8px 12px;margin:0;position:relative;">
         <label class="toggle-row" title="Show State Water Board BeachWatch monitoring stations">
@@ -1015,6 +1108,22 @@
     </div>
 
   </div>
+
+  <!-- ── Inclusion-criteria callout — anchored to the card's own right edge,
+       so the card stays perfectly centered and the gap never depends on
+       viewport width ── -->
+  <div id="criteria-callout">
+    <div id="criteria-callout-arrow"></div>
+    <div id="criteria-callout-title">See something missing or off?</div>
+    <div id="criteria-callout-text">
+      A whole program, a station, a parameter, or just an error — check the
+      <a href="#" onclick="window.open(CRITERIA_DOC_URL, '_blank'); return false;">inclusion criteria for this map</a>,
+      then send it (with data source links) to
+      <a href="mailto:esatterthwaite@ucsd.edu">esatterthwaite@ucsd.edu</a> or
+      <a href="mailto:bthuang@ucsd.edu">bthuang@ucsd.edu</a>.
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -1212,6 +1321,8 @@ function buildLegend() {
     document.getElementById('gaps-toggle').checked        ? { id: 'gaps',        label: 'Gaps' }        : null,
     document.getElementById('wea-toggle').checked ? { id: 'wea', label: 'Wind Energy' } : null,
     document.getElementById('asbs-toggle').checked ? { id: 'asbs', label: 'ASBS Areas' } : null,
+    document.getElementById('mpa-toggle').checked ? { id: 'mpa', label: 'MPAs' } : null,
+    document.getElementById('nms-toggle').checked ? { id: 'nms', label: 'Sanctuaries' } : null,
   ].filter(Boolean);
 
   // If active tab no longer exists, fall back to programs
@@ -1239,10 +1350,23 @@ function buildLegend() {
       const visible = visiblePrograms.has(name);
       const safe = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const displayName = nameOverrides[name] || programFullNames[name] || name;
-      bodyHtml += `<div class="legend-item${visible?'':' hidden-prog'}" onclick="toggleProgram('${safe}',${!visible})">
-        <input type="checkbox" ${visible?'checked':''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="toggleProgram('${safe}',this.checked)">
+      const isCHIS = (name === 'CHIS' || name === 'Channel Islands');
+      const isMPA = (name === 'MPAs & OPC' || name === 'CA MPAs');
+      const hasBoundary = isCHIS || isMPA;
+      const rowOnclick = hasBoundary ? `toggleProgramRow('${safe}',${!visible})` : `toggleProgram('${safe}',${!visible})`;
+      const checkboxOnchange = hasBoundary ? `toggleProgramRow('${safe}',this.checked)` : `toggleProgram('${safe}',this.checked)`;
+      bodyHtml += `<div class="legend-item${visible?'':' hidden-prog'}" onclick="${rowOnclick}">
+        <input type="checkbox" ${visible?'checked':''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="${checkboxOnchange}">
         <div style="width:22px;height:16px;background:${color};border-radius:2px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;"></div>
         <span>${displayName}</span></div>`;
+      if (hasBoundary && expandedBoundaryRows.has(name)) {
+        const boundaryOn = isCHIS ? showCHISBoundary : showMPABoundary;
+        const boundaryFn = isCHIS ? 'toggleCHISBoundary' : 'toggleMPABoundary';
+        const sourceNote = isCHIS ? '(NOAA shapefile)' : '(CDFW shapefile)';
+        const boundaryLabel = boundaryOn ? '− Hide full boundary polygon' : '+ Show full boundary polygon';
+        bodyHtml += `<div style="padding:3px 3px 7px 31px;" onclick="event.stopPropagation()">
+          <a onclick="${boundaryFn}()" style="font-size:13px;color:#0b7285;font-weight:700;text-decoration:none;cursor:pointer;">${boundaryLabel} <span style="font-weight:400;color:#888;">${sourceNote}</span></a></div>`;
+      }
     });
   }
 
@@ -1442,6 +1566,60 @@ function buildLegend() {
     });
 
     bodyHtml += `<div style="font-size:11px;color:#888;padding:4px 3px 0 3px;">Monitoring inside SWQPA–ASBS boundaries</div>`;
+  }
+
+  else if (legendActiveTab === 'mpa') {
+
+    const mpaPrograms = [...new Set(
+      allMPAHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+    )].sort();
+
+    if (!window.visibleMPAPrograms) window.visibleMPAPrograms = new Set(mpaPrograms);
+    const allOn = mpaPrograms.every(p => visibleMPAPrograms.has(p));
+
+    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
+      <button onclick="setAllMPAPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#0b7285':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
+      <button onclick="setAllMPAPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn?'#0b7285':'#f0f4f8'};color:${!allOn?'white':'#444'};">All Off</button>
+    </div>`;
+
+    mpaPrograms.forEach(prog => {
+      const color = getColor(prog);
+      const visible = visibleMPAPrograms.has(prog);
+      const safe = prog.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      bodyHtml += `<div class="legend-item${visible?'':' hidden-prog'}" onclick="toggleMPAProgram('${safe}',${!visible})">
+        <input type="checkbox" ${visible?'checked':''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="toggleMPAProgram('${safe}',this.checked)">
+        <div class="legend-swatch" style="background:${color};border-color:${color};"></div>
+        <span>${nameOverrides[prog] || programFullNames[prog] || prog}</span></div>`;
+    });
+
+    bodyHtml += `<div style="font-size:11px;color:#888;padding:4px 3px 0 3px;">Monitoring inside open-coast CA MPA boundaries (CDFW)</div>`;
+  }
+
+  else if (legendActiveTab === 'nms') {
+
+    const nmsPrograms = [...new Set(
+      allNMSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+    )].sort();
+
+    if (!window.visibleNMSPrograms) window.visibleNMSPrograms = new Set(nmsPrograms);
+    const allOn = nmsPrograms.every(p => visibleNMSPrograms.has(p));
+
+    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
+      <button onclick="setAllNMSPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#1d4ed8':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
+      <button onclick="setAllNMSPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn?'#1d4ed8':'#f0f4f8'};color:${!allOn?'white':'#444'};">All Off</button>
+    </div>`;
+
+    nmsPrograms.forEach(prog => {
+      const color = getColor(prog);
+      const visible = visibleNMSPrograms.has(prog);
+      const safe = prog.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      bodyHtml += `<div class="legend-item${visible?'':' hidden-prog'}" onclick="toggleNMSProgram('${safe}',${!visible})">
+        <input type="checkbox" ${visible?'checked':''} style="accent-color:#555;" onclick="event.stopPropagation()" onchange="toggleNMSProgram('${safe}',this.checked)">
+        <div class="legend-swatch" style="background:${color};border-color:${color};"></div>
+        <span>${nameOverrides[prog] || programFullNames[prog] || prog}</span></div>`;
+    });
+
+    bodyHtml += `<div style="font-size:11px;color:#888;padding:4px 3px 0 3px;">Monitoring inside the 4 CA National Marine Sanctuaries (NOAA)</div>`;
   }
 
   const multiClass = tabs.length > 1 ? 'multi-tab' : '';
@@ -2080,6 +2258,245 @@ function toggleASBS() {
   buildLegend();
 }
 
+// ── MPA layer — California Marine Protected Areas, open coast only.
+// Same "clip the main inventory to just these boundaries" pattern as ASBS/WEA. ──
+let mpaLayer = L.layerGroup();
+let mpaLoaded = false;
+let mpaHexLayer = L.layerGroup();
+let mpaHexLoaded = false;
+let allMPAHexFeatures = [];
+let visibleMPAPrograms = new Set();
+let mpaVisibleHexCount = 0;
+
+function loadMPA() {
+  const statusEl = document.getElementById('mpa-status');
+  statusEl.textContent = 'Loading…';
+  fetch('MPA.geojson').then(r=>{
+    if(!r.ok) throw new Error('MPA.geojson not found (HTTP '+r.status+')');
+    return r.json();
+  }).then(data=>{
+    mpaLoaded = true;
+    if (!map.getPane('mpaPane')) {
+      map.createPane('mpaPane');
+      map.getPane('mpaPane').style.zIndex = 300;
+      map.getPane('mpaPane').style.pointerEvents = 'none';
+    }
+    L.geoJSON(data, {
+      pane: 'mpaPane',
+      style: { color: '#0b7285', weight: 1.5, dashArray: '4 3', fillColor: '#15aabf', fillOpacity: 0.12 }
+    }).addTo(mpaLayer);
+    statusEl.textContent = 'Loaded';
+  }).catch(err=>{
+    document.getElementById('mpa-toggle').checked = false;
+    statusEl.textContent = '⚠ ' + err.message;
+    mpaLayer.remove();
+  });
+}
+
+function renderMPAHexes() {
+  mpaHexLayer.clearLayers();
+  if (!document.getElementById('mpa-toggle').checked) return;
+
+  const selectedParams = getCheckedValues('param');
+  const selectedEovs   = getCheckedValues('eov');
+
+  let visibleCount = 0;
+  allMPAHexFeatures.forEach(f => {
+    const p = f.properties || {};
+    const prog = normalizeProgram(getProp(p, 'Program Name', 'Program.Name') || 'Unknown');
+    if (!visibleMPAPrograms.has(prog)) return;
+
+    if (selectedParams.length > 0) {
+      const params = getProp(p, 'Parameters', 'parameters');
+      if (!selectedParams.some(sp => params.includes(sp))) return;
+    }
+    if (selectedEovs.length > 0) {
+      const eovGroups = getProp(p, 'EOV Groups', 'EOV.Groups');
+      if (!selectedEovs.some(ev => eovGroups.includes(ev))) return;
+    }
+
+    visibleCount++;
+    if (!programColors[prog]) programColors[prog] = colorList[Object.keys(programColors).length % colorList.length];
+    const color = programColors[prog];
+
+    const layer = L.geoJSON(f, {
+      style: { color: color, weight: 1, fillColor: color, fillOpacity: 0.5, dashArray: '4 3' }
+    });
+    layer.bindPopup(() => buildHexPopup(p), { maxWidth: 400, maxHeight: 520 });
+    layer.on('mouseover', function(){ this.setStyle({ weight: 2.5, fillOpacity: 0.75 }); });
+    layer.on('mouseout',  function(){ this.setStyle({ weight: 1, fillOpacity: 0.5 }); });
+    layer.addTo(mpaHexLayer);
+  });
+
+  mpaVisibleHexCount = visibleCount;
+  const statusEl = document.getElementById('mpa-status');
+  if (statusEl && document.getElementById('mpa-toggle').checked) {
+    statusEl.textContent = 'Loaded';
+  }
+  updateStatus();
+}
+
+function loadMPAHexes(res) {
+  mpaHexLayer.clearLayers();
+  if (!document.getElementById('mpa-toggle').checked) return;
+  loadGzipGeoJSON('Master_MPA_' + res + '.geojson.gz')
+    .then(data => {
+      allMPAHexFeatures = data.features;
+      const progs = [...new Set(allMPAHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown')))];
+      visibleMPAPrograms = new Set(progs);
+      mpaHexLoaded = true;
+      renderMPAHexes();
+      if (document.getElementById('mpa-toggle').checked) {
+        mpaHexLayer.addTo(map);
+        buildLegend();
+      }
+    })
+    .catch(err => console.warn('MPA hex load failed:', err.message));
+}
+
+function toggleMPA() {
+  const on = document.getElementById('mpa-toggle').checked;
+  document.getElementById('mpa-desc').style.display = on ? 'block' : 'none';
+  if (on) legendActiveTab = 'mpa';
+  if (on) {
+    mpaLayer.addTo(map);
+    if (!mpaLoaded) loadMPA();
+    else document.getElementById('mpa-status').textContent = 'Loaded';
+    if (!mpaHexLoaded) {
+      loadMPAHexes(currentRes);
+    } else {
+      renderMPAHexes();
+      mpaHexLayer.addTo(map);
+    }
+  } else {
+    mpaLayer.remove();
+    mpaHexLayer.remove();
+    legendActiveTab = 'programs';
+    document.getElementById('mpa-status').textContent = 'Hidden';
+    updateStatus();
+  }
+  buildLegend();
+}
+
+// ── NMS layer — the 4 California National Marine Sanctuaries. ──
+let nmsLayer = L.layerGroup();
+let nmsLoaded = false;
+let nmsHexLayer = L.layerGroup();
+let nmsHexLoaded = false;
+let allNMSHexFeatures = [];
+let visibleNMSPrograms = new Set();
+let nmsVisibleHexCount = 0;
+
+function loadNMS() {
+  const statusEl = document.getElementById('nms-status');
+  statusEl.textContent = 'Loading…';
+  fetch('NMS.geojson').then(r=>{
+    if(!r.ok) throw new Error('NMS.geojson not found (HTTP '+r.status+')');
+    return r.json();
+  }).then(data=>{
+    nmsLoaded = true;
+    if (!map.getPane('nmsPane')) {
+      map.createPane('nmsPane');
+      map.getPane('nmsPane').style.zIndex = 300;
+      map.getPane('nmsPane').style.pointerEvents = 'none';
+    }
+    L.geoJSON(data, {
+      pane: 'nmsPane',
+      style: { color: '#1d4ed8', weight: 1.5, dashArray: '4 3', fillColor: '#60a5fa', fillOpacity: 0.10 }
+    }).addTo(nmsLayer);
+    statusEl.textContent = 'Loaded';
+  }).catch(err=>{
+    document.getElementById('nms-toggle').checked = false;
+    statusEl.textContent = '⚠ ' + err.message;
+    nmsLayer.remove();
+  });
+}
+
+function renderNMSHexes() {
+  nmsHexLayer.clearLayers();
+  if (!document.getElementById('nms-toggle').checked) return;
+
+  const selectedParams = getCheckedValues('param');
+  const selectedEovs   = getCheckedValues('eov');
+
+  let visibleCount = 0;
+  allNMSHexFeatures.forEach(f => {
+    const p = f.properties || {};
+    const prog = normalizeProgram(getProp(p, 'Program Name', 'Program.Name') || 'Unknown');
+    if (!visibleNMSPrograms.has(prog)) return;
+
+    if (selectedParams.length > 0) {
+      const params = getProp(p, 'Parameters', 'parameters');
+      if (!selectedParams.some(sp => params.includes(sp))) return;
+    }
+    if (selectedEovs.length > 0) {
+      const eovGroups = getProp(p, 'EOV Groups', 'EOV.Groups');
+      if (!selectedEovs.some(ev => eovGroups.includes(ev))) return;
+    }
+
+    visibleCount++;
+    if (!programColors[prog]) programColors[prog] = colorList[Object.keys(programColors).length % colorList.length];
+    const color = programColors[prog];
+
+    const layer = L.geoJSON(f, {
+      style: { color: color, weight: 1, fillColor: color, fillOpacity: 0.5, dashArray: '4 3' }
+    });
+    layer.bindPopup(() => buildHexPopup(p), { maxWidth: 400, maxHeight: 520 });
+    layer.on('mouseover', function(){ this.setStyle({ weight: 2.5, fillOpacity: 0.75 }); });
+    layer.on('mouseout',  function(){ this.setStyle({ weight: 1, fillOpacity: 0.5 }); });
+    layer.addTo(nmsHexLayer);
+  });
+
+  nmsVisibleHexCount = visibleCount;
+  const statusEl = document.getElementById('nms-status');
+  if (statusEl && document.getElementById('nms-toggle').checked) {
+    statusEl.textContent = 'Loaded';
+  }
+  updateStatus();
+}
+
+function loadNMSHexes(res) {
+  nmsHexLayer.clearLayers();
+  if (!document.getElementById('nms-toggle').checked) return;
+  loadGzipGeoJSON('Master_NMS_' + res + '.geojson.gz')
+    .then(data => {
+      allNMSHexFeatures = data.features;
+      const progs = [...new Set(allNMSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown')))];
+      visibleNMSPrograms = new Set(progs);
+      nmsHexLoaded = true;
+      renderNMSHexes();
+      if (document.getElementById('nms-toggle').checked) {
+        nmsHexLayer.addTo(map);
+        buildLegend();
+      }
+    })
+    .catch(err => console.warn('NMS hex load failed:', err.message));
+}
+
+function toggleNMS() {
+  const on = document.getElementById('nms-toggle').checked;
+  document.getElementById('nms-desc').style.display = on ? 'block' : 'none';
+  if (on) legendActiveTab = 'nms';
+  if (on) {
+    nmsLayer.addTo(map);
+    if (!nmsLoaded) loadNMS();
+    else document.getElementById('nms-status').textContent = 'Loaded';
+    if (!nmsHexLoaded) {
+      loadNMSHexes(currentRes);
+    } else {
+      renderNMSHexes();
+      nmsHexLayer.addTo(map);
+    }
+  } else {
+    nmsLayer.remove();
+    nmsHexLayer.remove();
+    legendActiveTab = 'programs';
+    document.getElementById('nms-status').textContent = 'Hidden';
+    updateStatus();
+  }
+  buildLegend();
+}
+
 function toggleGaps() {
   const on = document.getElementById('gaps-toggle').checked;
   if (on) legendActiveTab = 'gaps'; 
@@ -2180,6 +2597,40 @@ function setAllASBSPrograms(on) {
   visibleASBSPrograms = on ? new Set(asbsPrograms) : new Set();
   renderASBSHexes();
   if (document.getElementById('asbs-toggle').checked) asbsHexLayer.addTo(map);
+  buildLegend();
+}
+
+function toggleMPAProgram(name, on) {
+  if (on) visibleMPAPrograms.add(name); else visibleMPAPrograms.delete(name);
+  renderMPAHexes();
+  if (document.getElementById('mpa-toggle').checked) mpaHexLayer.addTo(map);
+  buildLegend();
+}
+
+function setAllMPAPrograms(on) {
+  const mpaPrograms = [...new Set(
+    allMPAHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+  )];
+  visibleMPAPrograms = on ? new Set(mpaPrograms) : new Set();
+  renderMPAHexes();
+  if (document.getElementById('mpa-toggle').checked) mpaHexLayer.addTo(map);
+  buildLegend();
+}
+
+function toggleNMSProgram(name, on) {
+  if (on) visibleNMSPrograms.add(name); else visibleNMSPrograms.delete(name);
+  renderNMSHexes();
+  if (document.getElementById('nms-toggle').checked) nmsHexLayer.addTo(map);
+  buildLegend();
+}
+
+function setAllNMSPrograms(on) {
+  const nmsPrograms = [...new Set(
+    allNMSHexFeatures.map(f => normalizeProgram(getProp(f.properties||{}, 'Program Name', 'Program.Name') || 'Unknown'))
+  )];
+  visibleNMSPrograms = on ? new Set(nmsPrograms) : new Set();
+  renderNMSHexes();
+  if (document.getElementById('nms-toggle').checked) nmsHexLayer.addTo(map);
   buildLegend();
 }
 
@@ -2547,6 +2998,14 @@ function switchResolution(res) {
         asbsHexLoaded = false;
         loadASBSHexes(res);
       }
+    if (document.getElementById('mpa-toggle').checked) {
+        mpaHexLoaded = false;
+        loadMPAHexes(res);
+      }
+    if (document.getElementById('nms-toggle').checked) {
+        nmsHexLoaded = false;
+        loadNMSHexes(res);
+      }
     return;
   }
 
@@ -2555,6 +3014,8 @@ function switchResolution(res) {
       resCache[res]   = data.features;
       allFeatures     = data.features;
       currentFiltered = allFeatures;
+      applyPlanktonImagingOverride(allFeatures);
+      injectPassiveAcousticStation(allFeatures);
       // preserve existing visibility — only assign colors for any newly seen programs
       allFeatures.forEach(f=>{ const p=normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||''); if(p) getColor(p); });
       renderFeatures(allFeatures);
@@ -2570,7 +3031,17 @@ function switchResolution(res) {
         asbsHexLoaded = false;
         loadASBSHexes(res);
       }
-    
+      if (document.getElementById('mpa-toggle').checked) {
+        mpaHexLayer.clearLayers();
+        mpaHexLoaded = false;
+        loadMPAHexes(res);
+      }
+      if (document.getElementById('nms-toggle').checked) {
+        nmsHexLayer.clearLayers();
+        nmsHexLoaded = false;
+        loadNMSHexes(res);
+      }
+
       buildLegend();
       statusEl.textContent = res + ' loaded';
     })
@@ -2585,6 +3056,8 @@ function switchResolution(res) {
 loadGzipGeoJSON('Master_Inventory_3km.geojson.gz').then(data=>{  allFeatures=data.features;
   resCache['3km'] = data.features;   // seed cache so switching back is instant
   currentFiltered=allFeatures;
+  applyPlanktonImagingOverride(allFeatures);
+  injectPassiveAcousticStation(allFeatures);
   populateDropdowns(allFeatures);
 
   const allProgs = new Set();
@@ -2613,6 +3086,31 @@ let polygonOverlayLayer = L.layerGroup().addTo(map);
 
 let chisPolygonLayer = null;
 let mpaPolygonLayer = null;
+
+// ── Boundary-polygon visibility, decoupled from the program hex checkboxes.
+// Off by default; toggled via the "Show full boundary polygon" link that
+// expands under the Channel Islands / MPA program rows in the legend. ──
+let showCHISBoundary = false;
+let showMPABoundary = false;
+let expandedBoundaryRows = new Set();
+
+function toggleProgramRow(name, newChecked) {
+  if (expandedBoundaryRows.has(name)) expandedBoundaryRows.delete(name);
+  else expandedBoundaryRows.add(name);
+  toggleProgram(name, newChecked);
+}
+
+function toggleCHISBoundary() {
+  showCHISBoundary = !showCHISBoundary;
+  if (chisPolygonLayer) { if (showCHISBoundary) chisPolygonLayer.addTo(map); else chisPolygonLayer.remove(); }
+  buildLegend();
+}
+
+function toggleMPABoundary() {
+  showMPABoundary = !showMPABoundary;
+  if (mpaPolygonLayer) { if (showMPABoundary) mpaPolygonLayer.addTo(map); else mpaPolygonLayer.remove(); }
+  buildLegend();
+}
 
 
 fetch('Master_Polygons.geojson')
@@ -2677,6 +3175,10 @@ fetch('Master_Polygons.geojson')
   fetch('CHIS/CHIS_polygons.geojson')
   .then(r => { if (!r.ok) throw new Error('CHIS polygon not found'); return r.json(); })
   .then(data => {
+    if (!map.getPane('polygonPane')) {
+      map.createPane('polygonPane');
+      map.getPane('polygonPane').style.zIndex = 200;
+    }
     chisPolygonLayer = L.geoJSON(data, {
       pane: 'polygonPane',
       style: function() {
@@ -2697,7 +3199,7 @@ fetch('Master_Polygons.geojson')
         });
       }
     });
-    if (!visiblePrograms.has('Channel Islands')) chisPolygonLayer.remove();
+    if (!showCHISBoundary) chisPolygonLayer.remove();
     else chisPolygonLayer.addTo(map);
 
   })
@@ -2706,6 +3208,10 @@ fetch('Master_Polygons.geojson')
   fetch('California_MPA_polygons.geojson')
   .then(r => { if (!r.ok) throw new Error('MPA GeoJSON not found'); return r.json(); })
   .then(data => {
+    if (!map.getPane('polygonPane')) {
+      map.createPane('polygonPane');
+      map.getPane('polygonPane').style.zIndex = 200;
+    }
     // Inject Program Name into each feature so toggleProgram can identify it
     data.features.forEach(f => { f.properties['Program Name'] = 'CA MPAs'; });
     mpaPolygonLayer = L.geoJSON(data, {
@@ -2729,7 +3235,7 @@ fetch('Master_Polygons.geojson')
       }
     });
   
-    mpaPolygonLayer.addTo(map);
+    if (showMPABoundary) mpaPolygonLayer.addTo(map);
     buildLegend();
 
   })
@@ -2888,7 +3394,7 @@ function toggleOtherLayersPanel() {
 }
 
 function updateOtherLayersLabel() {
-  const ids = ['wea-toggle','asbs-toggle','beachwatch-toggle'];
+  const ids = ['wea-toggle','asbs-toggle','mpa-toggle','nms-toggle','beachwatch-toggle'];
   const n = ids.filter(id => document.getElementById(id).checked).length;
   document.getElementById('other-layers-label').textContent = n > 0 ? 'Other Layers (' + n + ')' : 'Other Layers';
 }
@@ -3029,20 +3535,123 @@ function renderFeatures(features) {
 
  
   if (chisPolygonLayer) {
-    if (visiblePrograms.has('Channel Islands') || visiblePrograms.has('CHIS')) chisPolygonLayer.addTo(map);
+    if (showCHISBoundary) chisPolygonLayer.addTo(map);
     else chisPolygonLayer.remove();
   }
   if (mpaPolygonLayer) {
-    if (visiblePrograms.has('MPAs & OPC')) mpaPolygonLayer.addTo(map);
+    if (showMPABoundary) mpaPolygonLayer.addTo(map);
     else mpaPolygonLayer.remove();
   }
  
 }
 
+// Plankton Imaging (IFCB network) — collocated at these 7 specific
+// permanent SCCOOS/CeNCOOS stations, not the whole program. Not yet in the
+// source attribute tables, so matched by proximity to each hex's centroid
+// at display time rather than rebuilding the data pipeline for one label.
+// Bodega Marine Lab has two nearby CeNCOOS points in the source data and
+// it's unclear which is the actual dock, so both are matched — see Betty's
+// notes on this.
+const PLANKTON_IMAGING_SITES = [
+  { name: 'Scripps Pier',          program: 'SCCOOS',  lat: 32.867,   lon: -117.257   },
+  { name: 'Newport Beach Pier',    program: 'SCCOOS',  lat: 33.6061,  lon: -117.9311  },
+  { name: 'Del Mar Mooring',       program: 'SCCOOS',  lat: 32.94966, lon: -117.28288 },
+  { name: 'Stearns Wharf',         program: 'SCCOOS',  lat: 34.408,   lon: -119.685   },
+  { name: 'Santa Cruz Wharf',      program: 'CeNCOOS', lat: 36.958,   lon: -122.017   },
+  { name: 'Trinidad Pier',         program: 'CeNCOOS', lat: 41.05495, lon: -124.14696 },
+  { name: 'Bodega Marine Lab (a)', program: 'CeNCOOS', lat: 38.3126,  lon: -123.0825  },
+  { name: 'Bodega Marine Lab (b)', program: 'CeNCOOS', lat: 38.31613, lon: -123.0705  },
+];
+const PLANKTON_IMAGING_MATCH_KM = 6; // generous enough to cover a 5km-hex diagonal
+
+function nearPlanktonImagingSite(progName, lat, lon) {
+  if (isNaN(lat) || isNaN(lon)) return false;
+  return PLANKTON_IMAGING_SITES.some(s => {
+    if (s.program !== progName) return false;
+    const dLat = (lat - s.lat) * 111;
+    const dLon = (lon - s.lon) * 111 * Math.cos(lat * Math.PI / 180);
+    return Math.sqrt(dLat * dLat + dLon * dLon) <= PLANKTON_IMAGING_MATCH_KM;
+  });
+}
+
+// Mutates the actual Parameters property (not just the popup display) on
+// matching features, so "Plankton Imaging" also shows up in the Parameter
+// filter dropdown and works as a filter — both of which read straight from
+// feature properties, not from buildHexPopup's display-time text.
+function applyPlanktonImagingOverride(features) {
+  features.forEach(f => {
+    const p = f.properties || {};
+    const progName = normalizeProgram(getProp(p, 'Program Name', 'Program.Name') || '');
+    if (progName !== 'SCCOOS' && progName !== 'CeNCOOS') return;
+    const lat = parseFloat(getProp(p, 'Centroid Latitude', 'Centroid.Latitude'));
+    const lon = parseFloat(getProp(p, 'Centroid Longitude', 'Centroid.Longitude'));
+    if (!nearPlanktonImagingSite(progName, lat, lon)) return;
+    const existing = getProp(p, 'Parameters', 'parameters');
+    if (existing && existing.split(';').map(s => s.trim()).includes('Plankton Imaging')) return;
+    p['Parameters'] = existing ? existing + '; Plankton Imaging' : 'Plankton Imaging';
+  });
+}
+
+// Passive Acoustic Monitoring (MBARC_CINMS_B) — a single SCCOOS-funded HARP
+// mooring in the Channel Islands National Marine Sanctuary, run by Scripps'
+// Marine Bioacoustic Research Collaborative (MBARC). Not yet in the source
+// attribute tables, so it's added here directly as one synthetic hex rather
+// than rebuilding the data pipeline for one station. Verified via NOAA NCEI's
+// Passive Acoustic Data Viewer (Funding Organization = SCCOOS): 3 sequential
+// deployments — MBARC_CINMS_B_50 (2024-03-18–05-13), _51 (2024-05-14–11-05),
+// _52 (2024-11-07–2025-04-13) — all at ~34.2502, -120.0254 (coordinate drift
+// between deployments is <100m, i.e. anchor/GPS noise on redeployment, not a
+// different site). PIs: Vanessa ZoBell, John Hildebrand, Simone
+// Baumann-Pickering, Kaitlin Frasier. DOI (deployment 51): 10.25921/5qpz-ah10.
+// Filed under Program Name 'SCCOOS' (matches NCEI's funding-org tag) so it
+// inherits SCCOOS's existing color/legend/toggle rather than needing its own.
+// The hex shape/size is borrowed from an existing 3km grid cell and translated
+// to this station's coordinates — used as-is at every resolution, since this
+// is a single fixed station, not a density-derived cell that should resize.
+const PASSIVE_ACOUSTIC_STATION = {
+  type: 'Feature',
+  properties: {
+    'Station ID': 'MBARC_CINMS_B',
+    'Centroid Latitude': '34.2502',
+    'Centroid Longitude': '-120.0254',
+    'Program Name': 'SCCOOS',
+    'Full Program Name': 'Southern California Coastal Ocean Observing System',
+    'Frequency': 'Continuous',
+    'Platform': 'Fixed Mooring (Hydrophone)',
+    'First Year': '2024',
+    'Last Year': '2025',
+    'Sample Locations': '1',
+    'Parameters': 'Passive Acoustic Monitoring',
+    'EOV Groups': 'Biological'
+  },
+  geometry: {
+    type: 'Polygon',
+    coordinates: [[
+      [-120.0091121, 34.24235],
+      [-120.0090465, 34.2579582],
+      [-120.0253376, 34.2658081],
+      [-120.0416911, 34.2580476],
+      [-120.0417502, 34.2424394],
+      [-120.0254623, 34.2345917],
+      [-120.0091121, 34.24235]
+    ]]
+  }
+};
+
+function injectPassiveAcousticStation(features) {
+  if (features.some(f => f.properties && f.properties['Station ID'] === 'MBARC_CINMS_B')) return;
+  features.push(PASSIVE_ACOUSTIC_STATION);
+}
+
 function buildHexPopup(p) {
   const progName  =normalizeProgram(getProp(p,'Program Name','Program.Name'));
   const fullName  =nameOverrides[progName] || getProp(p,'Full Program Name','Full.Program.Name');
-  const parametersRaw = getProp(p,'Parameters','parameters');
+  let parametersRaw = getProp(p,'Parameters','parameters');
+  const hexLat = parseFloat(getProp(p,'Centroid Latitude','Centroid.Latitude'));
+  const hexLon = parseFloat(getProp(p,'Centroid Longitude','Centroid.Longitude'));
+  if ((progName === 'SCCOOS' || progName === 'CeNCOOS') && nearPlanktonImagingSite(progName, hexLat, hexLon)) {
+    parametersRaw = parametersRaw ? parametersRaw + '; Plankton Imaging' : 'Plankton Imaging';
+  }
   const parameters = parametersRaw
     ? [...new Set(parametersRaw.split(';').map(s => s.trim()).filter(Boolean))].join('; ')
     : '';
@@ -3212,7 +3821,16 @@ function resetFilters() {
   buildLegend();
 }
 
-function updateStatus(count) { document.getElementById('status').textContent=`Showing ${count} hex cells`; }
+function updateStatus(count) {
+  // Total reflects everything actually on screen: the main program hexes
+  // plus any Other-Layers overlay (MPA / NMS) currently toggled on — not
+  // just the main-inventory count, which reads as "0" when every program
+  // checkbox is off but an overlay layer is still showing hexes.
+  let total = countVisible();
+  if (document.getElementById('mpa-toggle') && document.getElementById('mpa-toggle').checked) total += mpaVisibleHexCount;
+  if (document.getElementById('nms-toggle') && document.getElementById('nms-toggle').checked) total += nmsVisibleHexCount;
+  document.getElementById('status').textContent = `Showing ${total} hex cells`;
+}
 function countVisible() {
   return currentFiltered.filter(f =>
     visiblePrograms.has(normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||''))
@@ -4219,6 +4837,11 @@ function dparamCanonical(raw) {
   return DPARAM_CANONICAL[raw] || raw;
 }
 
+// ── INCLUSION CRITERIA — link used by both the header link and the
+//    welcome-modal callout. Point this at the public PDF (or a published
+//    Google Doc link) once it's hosted; must be viewable without sign-in.
+const CRITERIA_DOC_URL = 'https://docs.google.com/document/d/1rD5Q0dC4W4YVglWOG-J3ud3UHXwEN3WetcwV8Fqub2w/edit?usp=sharing';
+
 // ── FEEDBACK — posts to a Google Form; no backend needed. ──
 // 1. Create a Google Form with your questions.
 // 2. Open the live form, View Page Source, search "entry." to find each
@@ -4266,7 +4889,7 @@ function submitFeedback(e) {
 </script>
 
 <button id="help-btn" onclick="document.getElementById('welcome-modal').style.display='flex'"
-  style="position:fixed;bottom:530px;left:10px;z-index:9999;background:#1a3a5c;color:white;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:none;"
+  style="position:fixed;bottom:230px;left:0;z-index:9999;background:#1a3a5c;color:white;border:none;border-radius:0 8px 8px 0;width:26px;height:52px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:2px 2px 8px rgba(0,0,0,0.3);display:none;"
   title="Show help">?</button>
 
 
