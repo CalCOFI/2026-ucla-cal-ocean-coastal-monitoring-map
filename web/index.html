@@ -145,6 +145,7 @@
   .dropdown-actions span:hover { text-decoration: underline; }
   .dropdown-search { padding: 8px 12px; border-bottom: 1px solid #eee; }
   .dropdown-search input { width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 3px; font-size: 13px; }
+  .param-avail-note { padding: 6px 12px; font-size: 12px; color: #666; background: #f5f8fb; border-bottom: 1px solid #eee; }
   .param-option {
     padding: 8px 12px;
     display: flex;
@@ -773,6 +774,7 @@
       <div class="dropdown-search">
         <input type="text" id="param-search" placeholder="Search parameters..." oninput="filterParamList()">
       </div>
+      <div id="param-avail-note" class="param-avail-note" style="display:none;"></div>
       <div id="param-checkbox-list"></div>
     </div>
   </div>
@@ -3262,27 +3264,35 @@ const overrides = {
   'Farallon Institute': 'B54E78' //scarlet red
 };
 
+// Program display names (dropdown, legend, popups). Keep in sync with the
+// Program Inventory sheet (ACRONYM -> PROGRAM); "National Oceanic and
+// Atmospheric Administration - X" is shortened to "NOAA X".
 const nameOverrides = {
   'BOON':             'UC Davis Bodega Ocean Observing Node',
   'CCFRP':            'California Collaborative Fisheries Research Program',
-  'CCLEAN':           'California Coastal Long-term Environmental Assessment Network',
-  'CPS Survey':       'Coastal Pelagic Species Survey',
+  'CCLEAN':           'Central Coast Long-term Environmental Assessment Network',
+  'CPS Survey':       'NOAA Southwest Fisheries Science Center - Coastal Pelagic Species Survey',
   'CUGN':             'California Underwater Glider Network',
   'CalCOFI':          'California Cooperative Oceanic Fisheries Investigations',
-  'CalPoly Humboldt': 'Cal Poly Humboldt',
+  'CalPoly Humboldt': 'California State Polytechnic University, Humboldt - Trinidad Pier Shore Station',
+  'CHIS':             'Channel Islands National Park - Kelp Forest Monitoring Program',
   'CeNCOOS':          'Central and Northern California Ocean Observing System',
   'Farallon Institute':'Farallon Institute',
   'MARINe':           'Multi-Agency Rocky Intertidal Network',
-  'NOAA GBTS':        'NOAA Groundfish Bottom Trawl Survey',
+  'NOAA GBTS':        'NOAA West Coast Groundfish Bottom Trawl Survey',
+  'NOAA H&L':         'NOAA Southern California Shelf Rockfish Hook and Line Survey',
   'NOAA GDP':         'NOAA Global Drifter Program',
   'NOAA IWCPS':       'NOAA Integrated West Coast Pelagics Survey',
   'NOAA RREAS':       'NOAA Rockfish Recruitment and Ecosystem Assessment Survey',
   'SCCOOS':           'Southern California Coastal Ocean Observing System',
   'SCCWRP':           'Southern California Coastal Water Research Project',
-  'SWRCB':            'State Water Resources Control Board – BeachWatch Program',
+  'SWRCB':            'State Water Resources Control Board - BeachWatch Program',
+  'SIO Shore Stations': 'Scripps Institution of Oceanography Shore Stations Program',
+  'UCSB SONGS':       'University of California, Santa Barbara San Onofre Nuclear Generating Station Mitigation Monitoring Program',
   'NOAA SWFSC-CalCOFI':       'NOAA Southwest Fisheries Science Center-California Cooperative Oceanic Fisheries Investigations',
   'NOAA THL':         'NOAA Trinidad Head Line',
-  'NOAA WCOA':        'NOAA West Coast Ocean Acidification Program',
+  'NOAA WCOA':        'NOAA West Coast Ocean Acidification Cruise',
+  'SCB MBON':         'Southern California Bight Marine Biodiversity Observation Network',
   'PnB': 'Plumes and Blooms Survey',
   'Channel Islands': 'Channel Islands National Park',
 
@@ -3304,7 +3314,15 @@ function getColor(program) {
 
 
 
-function normalizeProgram(name) { if(!name) return name; return name.replace(/([_\s]\d+|\d+)$/,'').trim(); }
+// Display acronyms that differ from the data folder names (renaming the folders
+// would need a rebuild; this maps them at display time instead)
+function normalizeProgram(name) {
+  if(!name) return name;
+  const n = name.replace(/([_\s]\d+|\d+)$/,'').trim();
+  if (n === 'SBC MBON')   return 'SCB MBON';
+  if (n === 'NOAA SWFSC') return 'NOAA SWFSC-CalCOFI';
+  return n;
+}
 function toggleProgram(prog, on) {
   if(on) visiblePrograms.add(prog); else visiblePrograms.delete(prog);
   syncProgDropdown();
@@ -3349,8 +3367,8 @@ function populateDropdowns(features) {
     if(paramStr) paramStr.split('; ').forEach(x=>{if(x.trim()) params.add(x.trim());});
   });
   [...programs].sort((a,b)=>{
-    const fa=programFullNames[a]||a;
-    const fb=programFullNames[b]||b;
+    const fa=nameOverrides[a]||programFullNames[a]||a;
+    const fb=nameOverrides[b]||programFullNames[b]||b;
     return fa.localeCompare(fb);
   }).forEach(prog=>{
     const full=programFullNames[prog];
@@ -3430,8 +3448,57 @@ function toggleDropdown(id) {
 function filterDropdownList(id) {
   const d=DROPDOWNS[id]; if(!d.search) return;
   const q=document.getElementById(d.search).value.toLowerCase();
-  document.querySelectorAll('#'+d.list+' .param-option').forEach(div=>{ const text=div.dataset.val||div.textContent.toLowerCase(); div.style.display=text.includes(q)?'flex':'none'; });
+  // data-avail="0" = parameter not measured by any selected program (see updateParamAvailability)
+  document.querySelectorAll('#'+d.list+' .param-option').forEach(div=>{ const text=div.dataset.val||div.textContent.toLowerCase(); div.style.display=(text.includes(q) && div.dataset.avail!=='0')?'flex':'none'; });
 }
+
+// ── Parameter list follows the Program selection ─────────────────────────────
+// When one or more programs are checked, the Parameter dropdown only lists
+// parameters those programs actually have hexes for. No program checked = all.
+let _progParamIndex = null, _progParamIndexSrc = null;
+function getProgramParamIndex() {
+  if (_progParamIndexSrc !== allFeatures) {           // rebuild when resolution data changes
+    _progParamIndex = {};
+    allFeatures.forEach(f => {
+      const p = f.properties;
+      const prog = normalizeProgram(getProp(p,'Program Name','Program.Name')||'');
+      const paramStr = getProp(p,'Parameters','parameters');
+      if (!prog || !paramStr) return;
+      const set = _progParamIndex[prog] || (_progParamIndex[prog] = new Set());
+      paramStr.split('; ').forEach(x => { if (x.trim()) set.add(x.trim()); });
+    });
+    _progParamIndexSrc = allFeatures;
+  }
+  return _progParamIndex;
+}
+function updateParamAvailability() {
+  const selectedProgs = getCheckedValues('prog');
+  const idx = getProgramParamIndex();
+  let avail = null;                                    // null = no program filter, show everything
+  if (selectedProgs.length > 0) {
+    avail = new Set();
+    selectedProgs.forEach(pr => (idx[pr] || []).forEach(x => avail.add(x)));
+  }
+  let shown = 0, total = 0;
+  document.querySelectorAll('#param-checkbox-list .param-option').forEach(div => {
+    const cb = div.querySelector('input');
+    // keep already-checked parameters visible so they can still be unchecked
+    const ok = !avail || avail.has(cb.value) || cb.checked;
+    div.dataset.avail = ok ? '1' : '0';
+    total++; if (ok) shown++;
+  });
+  const note = document.getElementById('param-avail-note');
+  if (note) {
+    if (avail && shown < total) {
+      note.textContent = `Showing ${shown} of ${total} parameters for the selected program${selectedProgs.length > 1 ? 's' : ''}`;
+      note.style.display = 'block';
+    } else {
+      note.style.display = 'none';
+    }
+  }
+  filterDropdownList('param');                         // re-apply search text + availability
+}
+
 function updateDropdownLabel(id) {
   const d=DROPDOWNS[id];
   const checked=[...document.querySelectorAll('#'+d.list+' input:checked')];
@@ -3439,6 +3506,7 @@ function updateDropdownLabel(id) {
   if(checked.length===0) label.textContent=d.default;
   else if(checked.length===1) label.textContent=checked[0].value;
   else label.textContent=checked.length+' selected';
+  if(id==='prog') updateParamAvailability();
   if(id==='dname'||id==='dparam'||id==='dtype') applyDischargerFilters();
   else applyFilters();
 }
@@ -3846,6 +3914,7 @@ function syncProgDropdown() {
   if(checked.length === 0) label.textContent = 'All Programs';
   else if(checked.length === 1) label.textContent = checked[0].value;
   else label.textContent = checked.length + ' selected';
+  updateParamAvailability();   // legend toggles also narrow the Parameter list
 }
 
 const DPARAM_CANONICAL = {

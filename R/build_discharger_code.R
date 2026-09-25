@@ -14,7 +14,7 @@
 #
 # Map display and popup styling handled by index.html, not this script.
 #
-# Run this BEFORE build_combine_map.R
+# Run this BEFORE build_combine_code.R
 ###################################################################################
 
 library(readr)
@@ -28,10 +28,45 @@ library(janitor)
 # USER SETTINGS 
 # =============================================================================
 
-discharger_folder     <- "C:/Users/bhuan/Downloads/Monitoring Data/Dischargers"
+# -----------------------------------------------------------------------------
+# FOLDER LOCATIONS  (set once per computer, not in this file)
+# -----------------------------------------------------------------------------
+# Folder paths are not written in this script, so the public repo never has
+# anyone's personal paths. They're read from your .Renviron file instead: a small
+# settings file R loads every time it starts. It lives in your home folder,
+# outside this repo, so it is never committed.
+#
+# One-time setup:
+#   1. In the R console, run:  usethis::edit_r_environ()
+#      (no usethis? run  file.edit("~/.Renviron")  instead)
+#   2. Add these lines with YOUR folders (use forward slashes, keep the quotes):
+#        MONITORING_DATA_DIR="C:/path/to/Monitoring Data"
+#        MONITORING_OUTPUTS_DIR="C:/path/to/Monitoring_Outputs"
+#   3. Save the file, then restart R (RStudio: Session > Restart R).
+#   Check it worked:  Sys.getenv("MONITORING_DATA_DIR")
+#
+#   MONITORING_DATA_DIR      input data: one subfolder per program, plus
+#                            ca_state/, Dischargers/ and Attribute_Table.csv
+#   MONITORING_OUTPUTS_DIR   where results are written (also holds the
+#                            GEBCO raster and WEA/ shapefile)
+#
+# Just trying it once? Skip .Renviron and run this in the console before
+# sourcing the script (it lasts until R restarts):
+#   Sys.setenv(MONITORING_DATA_DIR = "...", MONITORING_OUTPUTS_DIR = "...")
+
+data_dir     <- Sys.getenv("MONITORING_DATA_DIR")
+output_root  <- Sys.getenv("MONITORING_OUTPUTS_DIR")
+missing <- c(MONITORING_DATA_DIR = data_dir == "", MONITORING_OUTPUTS_DIR = output_root == "")
+if (any(missing))
+  stop("Not set: ", paste(names(missing)[missing], collapse = ", "),
+       ". See FOLDER LOCATIONS at the top of this script, then restart R.",
+       call. = FALSE)
+if (!dir.exists(data_dir))
+  stop("MONITORING_DATA_DIR folder not found: ", data_dir, call. = FALSE)
+
+discharger_folder     <- file.path(data_dir, "Dischargers")
 discharger_layer_name <- "Dischargers"
 
-output_root <- "C:/Users/bhuan/Downloads/Monitoring_Outputs"
 output_folder <- file.path(output_root, discharger_layer_name)
 dir.create(output_folder, showWarnings = FALSE, recursive = TRUE)
 

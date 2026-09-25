@@ -18,8 +18,39 @@ library(sf)
 # USER SETTINGS — adjust paths if yours differ
 # =============================================================================
 
-output_root      <- "C:/Users/bhuan/Downloads/Monitoring_Outputs"
-asbs_boundary_path <- "C:/Users/bhuan/Documents/calcofi-work/ASBS.geojson"
+# -----------------------------------------------------------------------------
+# FOLDER LOCATIONS  (set once per computer, not in this file)
+# -----------------------------------------------------------------------------
+# Folder paths are not written in this script, so the public repo never has
+# anyone's personal paths. They're read from your .Renviron file instead: a small
+# settings file R loads every time it starts. It lives in your home folder,
+# outside this repo, so it is never committed.
+#
+# One-time setup:
+#   1. In the R console, run:  usethis::edit_r_environ()
+#      (no usethis? run  file.edit("~/.Renviron")  instead)
+#   2. Add these lines with YOUR folders (use forward slashes, keep the quotes):
+#        MONITORING_OUTPUTS_DIR="C:/path/to/Monitoring_Outputs"
+#        MAP_REPO_DIR="C:/path/to/2026-ucla-cal-ocean-coastal-monitoring-map"
+#   3. Save the file, then restart R (RStudio: Session > Restart R).
+#   Check it worked:  Sys.getenv("MONITORING_OUTPUTS_DIR")
+#
+#   MONITORING_OUTPUTS_DIR   where results are written (also holds the
+#                            GEBCO raster and WEA/ shapefile)
+#   MAP_REPO_DIR             this repo (used to read web/ASBS.geojson)
+#
+# Just trying it once? Skip .Renviron and run this in the console before
+# sourcing the script (it lasts until R restarts):
+#   Sys.setenv(MONITORING_OUTPUTS_DIR = "...", MAP_REPO_DIR = "...")
+
+output_root  <- Sys.getenv("MONITORING_OUTPUTS_DIR")
+map_repo_dir <- Sys.getenv("MAP_REPO_DIR")
+missing <- c(MONITORING_OUTPUTS_DIR = output_root == "", MAP_REPO_DIR = map_repo_dir == "")
+if (any(missing))
+  stop("Not set: ", paste(names(missing)[missing], collapse = ", "),
+       ". See FOLDER LOCATIONS at the top of this script, then restart R.",
+       call. = FALSE)
+asbs_boundary_path <- file.path(map_repo_dir, "web", "ASBS.geojson")
 
 HEX_RESOLUTIONS <- c("1km", "3km", "5km")
 

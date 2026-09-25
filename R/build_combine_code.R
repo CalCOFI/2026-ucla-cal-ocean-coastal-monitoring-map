@@ -4,8 +4,11 @@
 # Merges all program outputs into resolution-specific master GeoJSONs.
 #
 # STEP 1 — Chunk combine:
-#   Merges split program folders (e.g. CalCOFI_1, CalCOFI_2) into one
-#   GeoJSON per program before they enter the master.
+#   Merges chunk folders (e.g. CalCOFI1, CalCOFI2) back into one GeoJSON per
+#   program before they enter the master. Chunks are optional: a program is
+#   only split across numbered folders so each build_program_code.R run is
+#   smaller (faster, and less likely to run out of memory and crash).
+#   Programs built from a single folder skip this step.
 #
 # STEP 2 — Master combine:
 #   Merges all program GeoJSONs into three master files:
@@ -18,8 +21,9 @@
 # STEP 3 — Compress:
 #   Gzips each master GeoJSON for web delivery.
 #
-# Run AFTER all programs processed with build_program_layer.R.
-# Run build_discharger_layer.R first if discharger layer is needed.
+# Run AFTER all programs are processed with build_program_code.R.
+# Run build_discharger_code.R first if the discharger layer is needed.
+# Afterwards: build_gaps_code.R, build_asbs_layer.R, build_mpa_nms_layer.R.
 ###################################################################################
 
 library(tidyverse)
@@ -29,9 +33,44 @@ library(sf)
 # USER SETTINGS
 # =============================================================================
 
-output_root                <- "C:/Users/bhuan/Downloads/Monitoring_Outputs"
+# -----------------------------------------------------------------------------
+# FOLDER LOCATIONS  (set once per computer, not in this file)
+# -----------------------------------------------------------------------------
+# Folder paths are not written in this script, so the public repo never has
+# anyone's personal paths. They're read from your .Renviron file instead: a small
+# settings file R loads every time it starts. It lives in your home folder,
+# outside this repo, so it is never committed.
+#
+# One-time setup:
+#   1. In the R console, run:  usethis::edit_r_environ()
+#      (no usethis? run  file.edit("~/.Renviron")  instead)
+#   2. Add these lines with YOUR folders (use forward slashes, keep the quotes):
+#        MONITORING_DATA_DIR="C:/path/to/Monitoring Data"
+#        MONITORING_OUTPUTS_DIR="C:/path/to/Monitoring_Outputs"
+#   3. Save the file, then restart R (RStudio: Session > Restart R).
+#   Check it worked:  Sys.getenv("MONITORING_DATA_DIR")
+#
+#   MONITORING_DATA_DIR      input data: one subfolder per program, plus
+#                            ca_state/, Dischargers/ and Attribute_Table.csv
+#   MONITORING_OUTPUTS_DIR   where results are written (also holds the
+#                            GEBCO raster and WEA/ shapefile)
+#
+# Just trying it once? Skip .Renviron and run this in the console before
+# sourcing the script (it lasts until R restarts):
+#   Sys.setenv(MONITORING_DATA_DIR = "...", MONITORING_OUTPUTS_DIR = "...")
+
+data_dir     <- Sys.getenv("MONITORING_DATA_DIR")
+output_root  <- Sys.getenv("MONITORING_OUTPUTS_DIR")
+missing <- c(MONITORING_DATA_DIR = data_dir == "", MONITORING_OUTPUTS_DIR = output_root == "")
+if (any(missing))
+  stop("Not set: ", paste(names(missing)[missing], collapse = ", "),
+       ". See FOLDER LOCATIONS at the top of this script, then restart R.",
+       call. = FALSE)
+if (!dir.exists(data_dir))
+  stop("MONITORING_DATA_DIR folder not found: ", data_dir, call. = FALSE)
+
 combined_name              <- "Master_Inventory"
-wea_shapefile_path_combine <- "C:/Users/bhuan/Downloads/Monitoring_Outputs/WEA/CA_Wind.shp"
+wea_shapefile_path_combine <- file.path(output_root, "WEA", "CA_Wind.shp")
 
 # Names of discharger output folders — excluded from hex combine
 discharger_folder_names <- c("Dischargers")
@@ -61,7 +100,7 @@ collapse_unique <- function(x, sep = "; ") {
 # COASTAL BUFFER
 # =============================================================================
 
-ca_boundary_path_combine <- "C:/Users/bhuan/Downloads/Monitoring Data/ca_state/CA_State.shp"
+ca_boundary_path_combine <- file.path(data_dir, "ca_state", "CA_State.shp")
 buffer_meters_combine    <- 13.4 * 1609.34
 
 ca_buffer_combine <- st_read(ca_boundary_path_combine, quiet = TRUE) %>%
@@ -73,7 +112,7 @@ cat("Coastal buffer ready.\n")
 
 # =============================================================================
 # STEP 1 — CHUNK COMBINE
-# Merges split program folders (e.g. CalCOFI_1, CalCOFI_2) into one GeoJSON per program.
+# Merges chunk folders (e.g. CalCOFI1, CalCOFI2) into one GeoJSON per program.
 # =============================================================================
 
 cat("=== STEP 1: Chunk combine ===\n")
@@ -91,7 +130,7 @@ if (length(chunk_folders) == 0) {
     full_path  = chunk_folders,
     chunk_name = basename(chunk_folders),
     # Strip the trailing number to get the base program name used for grouping
-    # e.g. CalCOFI_1 → CalCOFI
+    # e.g. CalCOFI1 → CalCOFI
     base_name  = str_remove(chunk_name, "[_ ]?\\d+$")
   )
   
@@ -297,7 +336,7 @@ for (res in HEX_RESOLUTIONS) {
     { gsub("\\\\", "/", .) } %>%
     .[!str_detect(., regex("Master_", ignore_case = TRUE))] %>%
     .[!str_detect(., regex("/chunks/",         ignore_case = TRUE))] %>%
-    # Skip chunk subfolders like CalCOFI_1, CalCOFI_2 — those were already
+    # Skip chunk subfolders like CalCOFI1, CalCOFI2 — those were already
     # merged into one file per program in Step 1
     .[!str_detect(basename(dirname(.)), "^.*[_ ]?\\d+$")] %>%
     .[!basename(dirname(.)) %in% discharger_folder_names] %>%
@@ -415,7 +454,7 @@ if (length(polygon_files) > 0) {
 
 cat("\nCombining transects...\n")
 
-ca_boundary_path <- "C:/Users/bhuan/Downloads/Monitoring Data/ca_state/CA_State.shp"
+ca_boundary_path <- file.path(data_dir, "ca_state", "CA_State.shp")
 buffer_meters    <- 13.4 * 1609.34
 
 transect_files <- list.files(output_root, pattern = "^transects\\.csv$",
