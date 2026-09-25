@@ -14,8 +14,8 @@
 #   WEA-only points (outside coastal buffer) go to _wea_Xkm.geojson separately.
 #   This ensures WEA hexes never appear in the master map until the toggle is clicked.
 #
-# Run once per program.
-# After all programs processed, run build_combine_map.R
+# Run once per program folder (or once per chunk folder, if a program is split).
+# After all programs are processed, run build_combine_code.R
 # =============================================================================
 
 # =============================================================================
@@ -31,25 +31,83 @@ library(terra)
 # USER SETTINGS 
 # =============================================================================
 
-# Clear any leftover temp files from a previous run before starting
-file.remove(list.files("C:/Users/bhuan/Documents/R_temp", full.names = TRUE))
+# -----------------------------------------------------------------------------
+# FOLDER LOCATIONS  (set once per computer, not in this file)
+# -----------------------------------------------------------------------------
+# Folder paths are not written in this script, so the public repo never has
+# anyone's personal paths. They're read from your .Renviron file instead: a small
+# settings file R loads every time it starts. It lives in your home folder,
+# outside this repo, so it is never committed.
+#
+# One-time setup:
+#   1. In the R console, run:  usethis::edit_r_environ()
+#      (no usethis? run  file.edit("~/.Renviron")  instead)
+#   2. Add these lines with YOUR folders (use forward slashes, keep the quotes):
+#        MONITORING_DATA_DIR="C:/path/to/Monitoring Data"
+#        MONITORING_OUTPUTS_DIR="C:/path/to/Monitoring_Outputs"
+#   3. Save the file, then restart R (RStudio: Session > Restart R).
+#   Check it worked:  Sys.getenv("MONITORING_DATA_DIR")
+#
+#   MONITORING_DATA_DIR      input data: one subfolder per program, plus
+#                            ca_state/, Dischargers/ and Attribute_Table.csv
+#   MONITORING_OUTPUTS_DIR   where results are written (also holds the
+#                            GEBCO raster and WEA/ shapefile)
+#
+# Just trying it once? Skip .Renviron and run this in the console before
+# sourcing the script (it lasts until R restarts):
+#   Sys.setenv(MONITORING_DATA_DIR = "...", MONITORING_OUTPUTS_DIR = "...")
 
-# Redirect all temp file writes to a controlled folder — prevents R and 
-# vroom from filling up the system temp drive on large CSV reads
-Sys.setenv(VROOM_TEMP_PATH = "C:/Users/bhuan/Documents/R_temp")
-Sys.setenv(TMPDIR          = "C:/Users/bhuan/Documents/R_temp")
-Sys.setenv(TMP             = "C:/Users/bhuan/Documents/R_temp")
-Sys.setenv(TEMP            = "C:/Users/bhuan/Documents/R_temp")
-dir.create("C:/Users/bhuan/Documents/R_temp", showWarnings = FALSE, recursive = TRUE)
+data_dir     <- Sys.getenv("MONITORING_DATA_DIR")
+output_root  <- Sys.getenv("MONITORING_OUTPUTS_DIR")
+missing <- c(MONITORING_DATA_DIR = data_dir == "", MONITORING_OUTPUTS_DIR = output_root == "")
+if (any(missing))
+  stop("Not set: ", paste(names(missing)[missing], collapse = ", "),
+       ". See FOLDER LOCATIONS at the top of this script, then restart R.",
+       call. = FALSE)
+if (!dir.exists(data_dir))
+  stop("MONITORING_DATA_DIR folder not found: ", data_dir, call. = FALSE)
 
-program_folder <- "C:/Users/bhuan/Downloads/Monitoring Data/CalCOFI"
-output_root <- "C:/Users/bhuan/Downloads/Monitoring_Outputs"
-ca_boundary_path <- "C:/Users/bhuan/Downloads/Monitoring Data/ca_state/CA_State.shp"
-attribute_table_path <- "C:/Users/bhuan/Downloads/Monitoring Data/Attribute_Table.csv"
-gebco_raster_path <- "C:/Users/bhuan/Downloads/Monitoring_Outputs/gebco_2025_n48.0_s30.0_w-130.0_e-110.0_geotiff.tif"
+# -----------------------------------------------------------------------------
+# WHICH PROGRAM TO BUILD  (change this each run)
+# -----------------------------------------------------------------------------
+# The name of one folder inside MONITORING_DATA_DIR, e.g. "SWRCB" or "CalCOFI1".
+#
+# Chunks are optional. A program's data can live in one folder ("SWRCB") or be
+# split across numbered folders ("CalCOFI1", "CalCOFI2", ...). Splitting only
+# exists to keep each run smaller: big programs can be slow or make R run out
+# of memory and crash when processed in one go. The results are the same either
+# way. If you split a program, build each numbered folder, then
+# build_combine_code.R merges them back into one program layer (the trailing
+# number is dropped from the program name).
+program_folder <- file.path(data_dir, "CalCOFI5")
+if (!dir.exists(program_folder))
+  stop("Program folder not found: ", program_folder, call. = FALSE)
+
+# -----------------------------------------------------------------------------
+# SHARED INPUT FILES  (usually no need to change)
+# -----------------------------------------------------------------------------
+ca_boundary_path     <- file.path(data_dir, "ca_state", "CA_State.shp")
+attribute_table_path <- file.path(data_dir, "Attribute_Table.csv")
+gebco_raster_path    <- file.path(output_root, "gebco_2025_n48.0_s30.0_w-130.0_e-110.0_geotiff.tif")
 # alternate: compressed GEBCO from GitHub (smaller file)
-# gebco_raster_path <- "C:/Users/bhuan/Downloads/Monitoring_Outputs/gebco_compressed.tif"
-wea_shapefile_path <- "C:/Users/bhuan/Downloads/Monitoring_Outputs/WEA/CA_Wind.shp"
+# gebco_raster_path  <- file.path(output_root, "gebco_compressed.tif")
+wea_shapefile_path   <- file.path(output_root, "WEA", "CA_Wind.shp")
+
+# -----------------------------------------------------------------------------
+# TEMP FOLDER  (usually no need to change)
+# -----------------------------------------------------------------------------
+# Large CSV reads can fill up the system temp drive, so temp files go to their
+# own folder: ~/R_temp by default (on Windows, ~ is your Documents folder).
+# To use a different folder, add R_TEMP_DIR="..." to .Renviron.
+# Leftover files from the previous run are cleared at the start of each run.
+r_temp_dir <- Sys.getenv("R_TEMP_DIR", file.path(path.expand("~"), "R_temp"))
+dir.create(r_temp_dir, showWarnings = FALSE, recursive = TRUE)
+file.remove(list.files(r_temp_dir, full.names = TRUE))
+Sys.setenv(VROOM_TEMP_PATH = r_temp_dir, TMPDIR = r_temp_dir, TMP = r_temp_dir, TEMP = r_temp_dir)
+
+# -----------------------------------------------------------------------------
+# BUILD OPTIONS
+# -----------------------------------------------------------------------------
 apply_wea_clip <- TRUE
 
 start_year <- 2000
@@ -67,9 +125,9 @@ apply_coastal_clip <- TRUE
 program_name  <- basename(program_folder) %>% str_remove("[_ ]?\\d+$")
 chunk_name    <- basename(program_folder)
 
-# If the folder name matches the program name exactly, output goes directly
-# into the program folder. If it has a chunk suffix (e.g. CalCOFI_1), output
-# goes into a subfolder so chunks stay separate until build_combine_map.R merges them.
+# A whole-program folder (e.g. "SWRCB") writes straight to its output folder.
+# A chunk folder (e.g. "CalCOFI1") writes to a subfolder (CalCOFI/CalCOFI1/) so
+# the chunks stay separate until build_combine_code.R merges them.
 output_folder <- if (chunk_name == program_name) {
   file.path(output_root, program_name)
 } else {
@@ -699,8 +757,8 @@ column_pattern_dictionary <- tribble(
   "\\bo2sat\\b|oxygen.*sat|\\bdo_sat\\b|do.*percent",             "direct_value",
   "\\be\\.?\\s?coli\\b|escherichia.*coli",                         "direct_value",
   "\\benterococcus\\b|\\benterococci\\b",                          "direct_value",
-  "total.*coliform|\\btotal_coliform\\b",                          "direct_value",
-  "fecal.*coliform|faecal.*coliform|\\bfecal_coliform\\b",        "direct_value"
+  "total.*coliform|coliform.*total|\\btotal_coliform\\b",                          "direct_value",
+  "fecal.*coliform|faecal.*coliform|coliform.*fa?ecal|\\bfecal_coliform\\b",        "direct_value"
 )
 
 context_parameter_map <- tribble(
@@ -816,8 +874,8 @@ parameter_dictionary <- tribble(
   "Seabird Abundance",                     "Biological",     "\\bseabird_abundance\\b|seabird abundance",                                                                                                                       "measurement",   "column",
   "Escherichia coli",                      "Biological",     "\\be\\.?\\s?coli\\b|escherichia.*coli",                                                                                                                          "measurement",   "column",
   "Enterococcus",                          "Biological",     "\\benterococcus\\b|\\benterococci\\b",                                                                                                                            "measurement",   "column",
-  "Total coliforms",                       "Biological",     "total.*coliform|\\btotal_coliform\\b",                                                                                                                            "measurement",   "column",
-  "Fecal coliforms",                       "Biological",     "fecal.*coliform|faecal.*coliform|\\bfecal_coliform\\b",                                                                                                          "measurement",   "column",
+  "Total coliforms",                       "Biological",     "total.*coliform|coliform.*total|\\btotal_coliform\\b",                                                                                                                            "measurement",   "column",
+  "Fecal coliforms",                       "Biological",     "fecal.*coliform|faecal.*coliform|coliform.*fa?ecal|\\bfecal_coliform\\b",                                                                                                          "measurement",   "column",
   "Krill (Euphausiid) Biomass",            "Biological",     "krill.?biomass|euphausiid.?biomass|euphausia.?biomass|\\bepac\\b|epac.*biomass",                                                                                 "measurement",   "column",
   "Krill (Euphausiid) Size",               "Biological",     "adult.*length|epac.*length|krill.*length|krill.*size",                                                                                                            "measurement",   "column",
   "Optical Backscatter",                   "Physical",       "optical.*backscatter",                                                                                                                          "measurement",   "column",
@@ -1024,9 +1082,9 @@ filename_parameter_dictionary <- tibble(
     "marine.*mammal.*behavior|mammal.*behavior",
     "[Ss]eabird.*[Ss]pecies|[Ss]eabirds.*[Ss]pecies",
     "[Ss]eabird.*[Bb]ehavior|[Ss]eabirds.*[Bb]ehavior",
-    "total.*coliform|\\btotal_coliform\\b",
+    "total.*coliform|coliform.*total|\\btotal_coliform\\b",
     "\\benterococcus\\b|\\benterococci\\b",
-    "fecal.*coliform|faecal.*coliform|\\bfecal_coliform\\b",
+    "fecal.*coliform|faecal.*coliform|coliform.*fa?ecal|\\bfecal_coliform\\b",
     "\\be\\.?\\s?coli\\b|escherichia.*coli",
     "KrillBiomass|Krill.*Biomass|epacBiomass",
     "KrillSize|Krill.*Size|epacLength",
@@ -1217,6 +1275,7 @@ filename_parameter_dictionary <- tibble(
     
     
   ),
+  # One entry per filename_parameter above, same order (148 total)
   eov_group = c(
     "Physical",        "Physical",        "Biogeochemical",  "Biogeochemical",
     "Biogeochemical",  "Biogeochemical",  "Biogeochemical",  "Biogeochemical",
@@ -1234,22 +1293,23 @@ filename_parameter_dictionary <- tibble(
     "Biological",      "Biological",      "Biological",      "Biological",
     "Biological",      "Biological",      "Biological",      "Biological",
     "Biological",      "Biological",      "Biological",      "Biological",
-    "Biological",      "Biological",      "Physical",        "Physical",
-    "Biological",      "Physical",        "Biogeochemical",  "Physical",
+    "Biological",      "Biological",      "Biological",      "Physical",
+    "Physical",        "Biological",      "Physical",        "Biogeochemical",
+    "Physical",        "Biogeochemical",  "Biogeochemical",  "Biogeochemical",
+    "Biogeochemical",  "Biological",      "Biological",      "Biological",
+    "Biological",      "Biological",      "Biological",      "Biological",
+    "Biological",      "Biological",      "Biological",      "Biological",
+    "Biological",      "Biological",      "Biological",      "Biological",
+    "Biological",      "Biological",      "Biogeochemical",  "Biogeochemical",
     "Biogeochemical",  "Biogeochemical",  "Biogeochemical",  "Biogeochemical",
+    "Biogeochemical",  "Physical",        "Biogeochemical",  "Biogeochemical",
+    "Biogeochemical",  "Biological",      "Biological",      "Biological",
     "Biological",      "Biological",      "Biological",      "Biological",
     "Biological",      "Biological",      "Biological",      "Biological",
+    "Physical",        "Biological",      "Biogeochemical",  "Biogeochemical",
+    "Biogeochemical",  "Biological",      "Biogeochemical",  "Biogeochemical",
+    "Biological",      "Biological",      "Biological",      "Physical",
     "Biological",      "Biological",      "Biological",      "Biological",
-    "Biological",      "Biological",      "Biological",      "Biological",
-    "Biogeochemical",  "Biogeochemical",  "Biogeochemical",  "Biogeochemical",
-    "Biogeochemical",  "Biogeochemical",  "Biogeochemical",  "Physical",
-    "Biogeochemical",  "Biogeochemical",  "Biogeochemical",  "Biological",
-    "Biological",      "Biological",      "Biological",      "Biological",
-    "Biological",      "Biological",      "Biological",      "Biological",
-    "Biological",      "Biological",      "Physical",        "Biological",
-    "Biogeochemical",  "Biogeochemical",  "Biogeochemical",  "Biological",
-    "Biogeochemical",  "Biogeochemical",  "Biological",      "Biological",
-    "Biological",      "Physical",        "Biological",      "Biological",
     "Biological",      "Biological",      "Biological",      "Biological",
     "Biological",      "Biological",      "Biological",      "Biological",
     "Biological",      "Biological",      "Biological",      "Biogeochemical",
@@ -1826,8 +1886,8 @@ param_value_lookup <- tribble(
   "catch size|catch_size",                                                                          "Catch Size",                                     "Biological",
   "e\\.?\\s?coli|escherichia.*coli",                                                                "Escherichia coli",                               "Biological",
   "\\benterococcus\\b|\\benterococci\\b",                                                           "Enterococcus",                                   "Biological",
-  "total.*coliform|\\btotal_coliform\\b",                                                           "Total coliforms",                                "Biological",
-  "fecal.*coliform|faecal.*coliform",                                                               "Fecal coliforms",                                "Biological",
+  "total.*coliform|coliform.*total|\\btotal_coliform\\b",                                                           "Total coliforms",                                "Biological",
+  "fecal.*coliform|faecal.*coliform|coliform.*fa?ecal",                                                               "Fecal coliforms",                                "Biological",
   "\\bpah\\b|polycyclic.*aromatic|\\bpyrene\\b|\\bfluoranthene\\b|\\banthracene\\b|\\bbenzo.*pyrene\\b|\\bacenaphth", "PAHs (Fish Tissue)",           "Biogeochemical",
   "\\bpbde\\b|polybrominated|brominated.*diphenyl|flame.*retardant",                                "PBDEs (Fish Tissue)",                            "Biogeochemical",
   "\\bpop\\b|persistent.*organic|\\bdioxin\\b|\\bfuran\\b|\\bpcdd\\b|\\bpcdf\\b",                   "POPs (Fish Tissue)",                             "Biogeochemical",

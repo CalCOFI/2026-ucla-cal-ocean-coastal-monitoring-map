@@ -15,7 +15,7 @@
 #
 # Also prints regional % unmonitored breakdown to console.
 #
-# Run AFTER build_combine_map.R.
+# Run AFTER build_combine_code.R.
 ###############################################################################
 
 library(tidyverse)
@@ -25,9 +25,45 @@ library(sf)
 # USER SETTINGS 
 # =============================================================================
 
-master_geojson_path <- "C:/Users/bhuan/Downloads/Monitoring_Outputs/Master_Inventory_1km.geojson"
-ca_boundary_path    <- "C:/Users/bhuan/Downloads/Monitoring Data/ca_state/CA_State.shp"
-output_path         <- "C:/Users/bhuan/Downloads/Monitoring_Outputs/monitoring_gaps.geojson"
+# -----------------------------------------------------------------------------
+# FOLDER LOCATIONS  (set once per computer, not in this file)
+# -----------------------------------------------------------------------------
+# Folder paths are not written in this script, so the public repo never has
+# anyone's personal paths. They're read from your .Renviron file instead: a small
+# settings file R loads every time it starts. It lives in your home folder,
+# outside this repo, so it is never committed.
+#
+# One-time setup:
+#   1. In the R console, run:  usethis::edit_r_environ()
+#      (no usethis? run  file.edit("~/.Renviron")  instead)
+#   2. Add these lines with YOUR folders (use forward slashes, keep the quotes):
+#        MONITORING_DATA_DIR="C:/path/to/Monitoring Data"
+#        MONITORING_OUTPUTS_DIR="C:/path/to/Monitoring_Outputs"
+#   3. Save the file, then restart R (RStudio: Session > Restart R).
+#   Check it worked:  Sys.getenv("MONITORING_DATA_DIR")
+#
+#   MONITORING_DATA_DIR      input data: one subfolder per program, plus
+#                            ca_state/, Dischargers/ and Attribute_Table.csv
+#   MONITORING_OUTPUTS_DIR   where results are written (also holds the
+#                            GEBCO raster and WEA/ shapefile)
+#
+# Just trying it once? Skip .Renviron and run this in the console before
+# sourcing the script (it lasts until R restarts):
+#   Sys.setenv(MONITORING_DATA_DIR = "...", MONITORING_OUTPUTS_DIR = "...")
+
+data_dir     <- Sys.getenv("MONITORING_DATA_DIR")
+output_root  <- Sys.getenv("MONITORING_OUTPUTS_DIR")
+missing <- c(MONITORING_DATA_DIR = data_dir == "", MONITORING_OUTPUTS_DIR = output_root == "")
+if (any(missing))
+  stop("Not set: ", paste(names(missing)[missing], collapse = ", "),
+       ". See FOLDER LOCATIONS at the top of this script, then restart R.",
+       call. = FALSE)
+if (!dir.exists(data_dir))
+  stop("MONITORING_DATA_DIR folder not found: ", data_dir, call. = FALSE)
+
+master_geojson_path <- file.path(output_root, "Master_Inventory_1km.geojson")
+ca_boundary_path    <- file.path(data_dir, "ca_state", "CA_State.shp")
+output_path         <- file.path(output_root, "monitoring_gaps.geojson")
 
 buffer_miles   <- 13.4
 buffer_meters  <- buffer_miles * 1609.34

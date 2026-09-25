@@ -63,10 +63,51 @@ install.packages(c("readr", "dplyr", "tidyr", "stringr", "purrr",
 
 ---
 
+## Local setup
+
+The build scripts don't hard-code any folder paths. They read three folder
+locations from your personal `.Renviron` file, which lives on your computer and
+is never committed. Set it up once:
+
+```r
+usethis::edit_r_environ()   # or: file.edit("~/.Renviron")
+```
+
+Add these lines, using your own folder locations, then save and restart R:
+
+```
+MONITORING_DATA_DIR="C:/path/to/Monitoring Data"
+MONITORING_OUTPUTS_DIR="C:/path/to/Monitoring_Outputs"
+MAP_REPO_DIR="C:/path/to/2026-ucla-cal-ocean-coastal-monitoring-map"
+```
+
+- `MONITORING_DATA_DIR`: per-program input folders, `ca_state/`, `Dischargers/` and `Attribute_Table.csv`
+- `MONITORING_OUTPUTS_DIR`: where the scripts write outputs (also holds the GEBCO raster and `WEA/`)
+- `MAP_REPO_DIR`: this repo; only `build_asbs_layer.R` uses it, to read `web/ASBS.geojson`
+- Optional: `R_TEMP_DIR` sets the temp folder `build_program_code.R` uses for large CSV reads (default `~/R_temp`)
+
+Check the values with `Sys.getenv("MONITORING_DATA_DIR")`.
+
+Just trying the scripts once? Skip `.Renviron` and set the folders for the current
+R session only (they reset when R restarts):
+
+```r
+Sys.setenv(MONITORING_DATA_DIR    = "C:/path/to/Monitoring Data",
+           MONITORING_OUTPUTS_DIR = "C:/path/to/Monitoring_Outputs",
+           MAP_REPO_DIR           = "C:/path/to/2026-ucla-cal-ocean-coastal-monitoring-map")
+```
+
+The same steps are repeated in the FOLDER LOCATIONS comment at the top of each
+script, and a script stops with a message naming any folder setting that is missing.
+
+---
+
 ## How to Run
 
 ### Step 1 — Build each monitoring program layer
-Edit USER SETTINGS at the top of `build_program_code.R` and run once per program folder. Outputs per-resolution GeoJSONs and contributes to `transects.csv`. WEA hex layers are generated automatically for programs with offshore wind energy area coverage.
+Set `program_folder` in USER SETTINGS at the top of `build_program_code.R` and run once per program folder. Outputs per-resolution GeoJSONs and contributes to `transects.csv`. WEA hex layers are generated automatically for programs with offshore wind energy area coverage.
+
+Large programs can optionally be split into numbered "chunk" folders (e.g. `CalCOFI1`, `CalCOFI2`). Chunks only make each run smaller, so it's faster and less likely to run out of memory and crash; the results are the same as running the whole program folder. Build each chunk, and `build_combine_code.R` merges them back into one program.
 
 ### Step 2 — Build discharger layer
 Edit USER SETTINGS in `build_discharger_code.R` and run. Outputs `Dischargers/Dischargers.geojson`.
