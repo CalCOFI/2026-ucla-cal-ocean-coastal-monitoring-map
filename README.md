@@ -14,6 +14,9 @@ cal-ocean-coastal-monitoring-map/
 │   ├── build_program_code.R       # Process one monitoring program → hex GeoJSON
 │   ├── build_discharger_code.R    # Process discharger CSVs → point GeoJSON
 │   ├── build_combine_code.R       # Combine all layers → Master_Inventory GeoJSONs
+│   ├── remove_inland_hexes.R      # Drop hexes far inland (river beaches, bad coordinates)
+│   ├── build_asbs_layer.R         # Clip Master_Inventory hexes to ASBS areas
+│   ├── build_mpa_nms_layer.R      # Clip Master_Inventory hexes to MPAs and sanctuaries
 │   └── build_gaps_code.R          # Generate monitoring gap hex cells
 ├── WEA/
 │   └── CA_Wind.shp                # BOEM wind energy area shapefile (+ sidecar files)
@@ -34,7 +37,7 @@ cal-ocean-coastal-monitoring-map/
 │   ├── Master_WEA_1km.geojson
 │   ├── Master_WEA_3km.geojson
 │   ├── Master_WEA_5km.geojson
-│   ├── monitoring_gaps.geojson
+│   ├── monitoring_gaps.geojson.gz
 │   ├── gap_stats.json
 │   ├── transects.csv
 │   └── gebco_compressed.tif       ← Download separately (see Prerequisites)
@@ -113,15 +116,21 @@ Large programs can optionally be split into numbered "chunk" folders (e.g. `CalC
 Edit USER SETTINGS in `build_discharger_code.R` and run. Outputs `Dischargers/Dischargers.geojson`.
 
 ### Step 3 — Combine everything
-Run `build_combine_code.R`. Outputs `Master_Inventory_Xkm.geojson.gz` (one per resolution), `Master_WEA_Xkm.geojson`, and the combined `transects.csv`.
+Run `build_combine_code.R`. Outputs `Master_Inventory_Xkm.geojson.gz` (one per resolution), `Master_WEA_Xkm.geojson`, and the combined `transects.csv`. Hexes and transects more than 13.4 miles from the shoreline are dropped here (`ZONE_MILES_FROM_SHORE`). Note that `CA_State.shp` already extends 3 nautical miles offshore (state waters), so the script measures from the shoreline, not from that boundary.
 
-### Step 4 — Build gap layer (optional)
-Run `build_gaps_code.R` to generate `monitoring_gaps.geojson` and `gap_stats.json`.
+### Step 4 — Remove inland hexes
+Run `remove_inland_hexes.R`. It removes hexes more than `INLAND_MAX_KM` (10 km) plus half a cell from the ocean, such as river beaches far upstream and points with bad coordinates, and keeps lagoons, bays and harbors. The removed hexes are listed in `inland_hexes_removed.csv`. The untouched combine output is saved as `Master_Inventory_Xkm_before_inland.geojson`, so you can change `INLAND_MAX_KM` or `KEEP_PROGRAMS` and rerun this step without rerunning Step 3.
+
+### Step 5 — ASBS, MPA and sanctuary layers
+Run `build_asbs_layer.R` and `build_mpa_nms_layer.R`. They clip the Master Inventory hexes to those boundaries, so rerun them whenever Steps 3 or 4 change the Master Inventory.
+
+### Step 6 — Build gap layer (optional)
+Run `build_gaps_code.R` (after Steps 3–5) to generate `monitoring_gaps.geojson.gz`, `monitoring_gap_zone.geojson.gz` (lets the map recount gaps for the programs checked) and `gap_stats.json`. Gaps use 1 km cells on every map view (1 km allows for boat drift around a sampling location). The total area is the ocean (GEBCO elevation below 0 m) within 13.4 miles of shore, in US waters, excluding San Francisco Bay and the Delta. A cell counts as monitored only if a 1 km program hex sits on it (same grid as the programs).
 
 The build scripts write their outputs into `web/` (the published folder). When adding a
 new program/discharger/gap layer, regenerate the affected files into `web/`.
 
-### Step 5 — Serve the map locally
+### Step 7 — Serve the map locally
 Serve the `web/` folder with any static server:
 
 ```bash

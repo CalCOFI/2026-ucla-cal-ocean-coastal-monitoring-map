@@ -1,6 +1,2 @@
-metric,value
-Total buffer area (km²),63037
-Monitored area (km²),60923
-Unmonitored area (km²),2114
-Percent monitored (%),96.6
-Percent unmonitored (%),3.4
+resolution,total_km2,monitored_km2,gap_km2,pct_monitored,pct_unmonitored,gap_cells
+1km,49943,23895,26047,47.8,52.2,30077
