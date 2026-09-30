@@ -79,7 +79,7 @@ if (!dir.exists(data_dir))
 # way. If you split a program, build each numbered folder, then
 # build_combine_code.R merges them back into one program layer (the trailing
 # number is dropped from the program name).
-program_folder <- file.path(data_dir, "CalCOFI5")
+program_folder <- file.path(data_dir, "NOAA WCOA4")
 if (!dir.exists(program_folder))
   stop("Program folder not found: ", program_folder, call. = FALSE)
 
@@ -102,7 +102,8 @@ wea_shapefile_path   <- file.path(output_root, "WEA", "CA_Wind.shp")
 # Leftover files from the previous run are cleared at the start of each run.
 r_temp_dir <- Sys.getenv("R_TEMP_DIR", file.path(path.expand("~"), "R_temp"))
 dir.create(r_temp_dir, showWarnings = FALSE, recursive = TRUE)
-file.remove(list.files(r_temp_dir, full.names = TRUE))
+# (a file Windows is still using can't be removed; that's fine, so no warning)
+invisible(suppressWarnings(file.remove(list.files(r_temp_dir, full.names = TRUE))))
 Sys.setenv(VROOM_TEMP_PATH = r_temp_dir, TMPDIR = r_temp_dir, TMP = r_temp_dir, TEMP = r_temp_dir)
 
 # -----------------------------------------------------------------------------
@@ -204,11 +205,26 @@ if (has_spatial) {
 # LOAD ATTRIBUTE TABLE
 # =============================================================================
 
-attr_table_raw <- read_csv(attribute_table_path, show_col_types = FALSE) %>%
-  clean_names() %>%
-  filter(!is.na(acronym), str_trim(acronym) != "",
-         !is.na(standard_parameter), str_trim(standard_parameter) != "") %>%
-  mutate(across(everything(), str_trim))
+# Works with either version of the table's column headers:
+#   older:  FREQUENCY,          SAMPLING PLATFORM (VESSEL, BUOY, ETC)
+#   newer:  SAMPLING FREQUENCY, SAMPLING PLATFORM   (Program Inventory export)
+# The newer sheet also renamed two acronyms; map them back to the program
+# folder names so the lookup still matches.
+ACRONYM_ALIASES <- c("NOAA SWFSC-CalCOFI" = "NOAA SWFSC",
+                     "SCB MBON"           = "SBC MBON")
+
+read_attr_table <- function(path) {
+  read_csv(path, show_col_types = FALSE) %>%
+    clean_names() %>%
+    rename(any_of(c(frequency                         = "sampling_frequency",
+                    sampling_platform_vessel_buoy_etc = "sampling_platform"))) %>%
+    mutate(across(everything(), str_trim),
+           acronym = recode(acronym, !!!ACRONYM_ALIASES))
+}
+
+attr_table_raw <- read_attr_table(attribute_table_path) %>%
+  filter(!is.na(acronym), acronym != "",
+         !is.na(standard_parameter), standard_parameter != "")
 
 attr_param_lookup <- attr_table_raw %>%
   select(acronym, standard_parameter,
@@ -217,10 +233,8 @@ attr_param_lookup <- attr_table_raw %>%
   filter(!is.na(attr_frequency) | !is.na(attr_platform)) %>%
   distinct()
 
-attr_table_programs <- read_csv(attribute_table_path, show_col_types = FALSE) %>%
-  clean_names() %>%
-  filter(!is.na(acronym), str_trim(acronym) != "") %>%
-  mutate(across(everything(), str_trim))
+attr_table_programs <- read_attr_table(attribute_table_path) %>%
+  filter(!is.na(acronym), acronym != "")
 
 program_metadata <- attr_table_programs %>%
   group_by(acronym) %>%
@@ -365,12 +379,16 @@ contains_seasonal_language <- function(x) {
 }
 
 parse_date_time_safe <- function(x) {
-  x <- as.character(x)
+  x <- str_trim(as.character(x))
+  # Dates written without separators and without a leading zero ("6052016" =
+  # 6 May 2016) were read as %Y%m%d, giving years like 6052. Pad them to 8
+  # digits so they fail %Y%m%d and are read by %d%m%Y instead.
+  x <- ifelse(grepl("^[0-9]{7}$", x), paste0("0", x), x)
   formats <- c(
     "%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d",
     "%Y-%m-%d %H:%M:%S", "%m/%d/%Y %H:%M:%S",
     "%m/%d/%Y %I:%M:%S %p",
-    "%Y%m%d", "%d%b%Y", "%d%b%Y:%H:%M:%S", "%m/%d/%y"
+    "%Y%m%d", "%d%m%Y", "%d%b%Y", "%d%b%Y:%H:%M:%S", "%m/%d/%y"
   )
   result <- rep(as.Date(NA), length(x))
   for (fmt in formats) {
@@ -390,8 +408,18 @@ extract_year <- function(df, year_col = NA, date_col = NA) {
     out <- suppressWarnings(as.integer(df[[year_col]]))
   if (!is.na(date_col) && date_col %in% names(df)) {
     yr <- suppressWarnings(as.integer(format(parse_date_time_safe(df[[date_col]]), "%Y")))
+    # Dates no format could read but that still hold a year: 8 digits
+    # (e.g. "12312024", month first; the year is the last four) or a bare year ("2024")
+    d8  <- str_trim(as.character(df[[date_col]]))
+    d8  <- ifelse(grepl("^[0-9]{7}$", d8), paste0("0", d8), d8)
+    tail_yr <- suppressWarnings(as.integer(ifelse(grepl("^[0-9]{8}$", d8), substr(d8, 5, 8),
+                                           ifelse(grepl("^[0-9]{4}$", d8), d8, NA))))
+    rescue <- is.na(yr) & !is.na(tail_yr) & tail_yr >= 1900 & tail_yr <= 2100
+    yr[rescue] <- tail_yr[rescue]
     out[is.na(out)] <- yr[is.na(out)]
   }
+  # A year outside 1800-2100 is a misread date, not a real year
+  out[!is.na(out) & (out < 1800 | out > 2100)] <- NA_integer_
   out
 }
 
@@ -1825,12 +1853,15 @@ detect_fish_specimen_observation_parameters <- function(df, source_file) {
   is_invert  <- str_detect(file_clean, "invertebrate|invert")
   is_fish    <- str_detect(file_clean, "fish|trawl|gbts|haul")
   is_benthic <- str_detect(file_clean, "benthic|infauna")
+  # Larval fish files (e.g. "Fish_Larvae_Sizes") are ichthyoplankton, not adult
+  # fish: label them as larvae instead of Fish Abundance / Fish Size.
+  is_larvae  <- is_fish && str_detect(file_clean, "larva|ichthyoplankton")
   if (!is_invert && !is_fish && !is_benthic) {
     return(empty_param_schema)
   }
-  abund_label   <- if (is_invert) "Invertebrate Abundance" else if (is_benthic) "Benthic Infauna Abundance" else "Fish Abundance and Distribution"
+  abund_label   <- if (is_invert) "Invertebrate Abundance" else if (is_benthic) "Benthic Infauna Abundance" else if (is_larvae) "Fish Larvae Counts" else "Fish Abundance and Distribution"
   biomass_label <- if (is_invert) "Invertebrate Biomass"   else if (is_benthic) "Benthic Infauna Abundance" else "Fish Biomass"
-  size_label    <- if (is_invert) "Invertebrate Size"      else if (is_benthic) "Benthic Infauna Abundance" else "Fish Size"
+  size_label    <- if (is_invert) "Invertebrate Size"      else if (is_benthic) "Benthic Infauna Abundance" else if (is_larvae) "Fish Larvae Sizes" else "Fish Size"
   out <- tibble(
     source_file = source_file,
     raw_parameter_name = c("[specimen] taxon","[specimen] size","[specimen] biomass","[specimen] sex"),

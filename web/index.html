@@ -183,6 +183,19 @@
   .toggle-row input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; accent-color: #1a3a5c; flex-shrink: 0; }
   .toggle-row span { font-size: 11px; color: #444; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
   .toggle-sub { font-size: 11px; color: #999; line-height: 1; white-space: nowrap; }
+  /* Status text under a pill never makes the pill wider (so the top bar never wraps);
+     long text is cut with "…" and shown in full on hover */
+  .toggle-wrap > .toggle-sub, .toggle-wrap > .toggle-sub-row, #res-status, #status {
+    width: 0; min-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .toggle-sub-row .toggle-sub { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  /* the Dischargers "Filter" button sits in the status line without making the bar taller */
+  .toggle-sub-row { height: 11px; overflow: visible; }
+  #discharger-filter-btn { line-height: 11px !important; padding: 0 5px !important; }
+  /* Other Layers count: a small badge on the corner instead of "(2)" in the label */
+  #other-layers-btn { position: relative; }
+  .toggle-row .ol-count { position: absolute; top: -8px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px; border: 2px solid #f0f4f8; background: #1a3a5c; color: #fff; font-size: 10px; font-weight: 700;
+    letter-spacing: 0; display: none; align-items: center; justify-content: center; box-sizing: border-box; }
   .res-opt {
     display: flex; align-items: center; gap: 3px;
     font-size: 12px; color: #444; cursor: pointer;
@@ -206,7 +219,7 @@
     white-space: nowrap;
     color: white;
   }
-  #status { font-size: 12px; color: #777; white-space: nowrap; flex-shrink: 0; align-self: center; }
+  #status { font-size: 12px; color: #777; white-space: nowrap; flex-shrink: 0; align-self: center; text-align: center; }
 
   #map { flex: 1; position: relative; }
 
@@ -271,6 +284,26 @@
     max-height: 55vh; overflow-y: auto;
   }
   
+  /* Legend scrollbar: rounded, no arrows; fade at the bottom hints at more below */
+  #legend-body::-webkit-scrollbar { width: 11px; }
+  #legend-body::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+  #legend-body::-webkit-scrollbar-thumb { background: #c3ccd4; border-radius: 8px; border: 2px solid #fff; }
+  #legend-body::-webkit-scrollbar-thumb:hover { background: #9aa8b4; }
+  #legend-body::-webkit-scrollbar-button { display: none; height: 0; }
+  @supports not selector(::-webkit-scrollbar) { #legend-body { scrollbar-width: thin; scrollbar-color: #c3ccd4 transparent; } }
+  /* Same scrollbar in long pop-ups */
+  .leaflet-popup-scrolled::-webkit-scrollbar { width: 11px; }
+  .leaflet-popup-scrolled::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+  .leaflet-popup-scrolled::-webkit-scrollbar-thumb { background: #c3ccd4; border-radius: 8px; border: 2px solid #fff; }
+  .leaflet-popup-scrolled::-webkit-scrollbar-thumb:hover { background: #9aa8b4; }
+  .leaflet-popup-scrolled::-webkit-scrollbar-button { display: none; height: 0; }
+  @supports not selector(::-webkit-scrollbar) { .leaflet-popup-scrolled { scrollbar-width: thin; scrollbar-color: #c3ccd4 transparent; } }
+  #legend::after { content: ''; position: absolute; left: 0; right: 12px; bottom: 0; height: 24px; pointer-events: none;
+    background: linear-gradient(rgba(255,255,255,0), #fff); border-radius: 0 0 6px 6px; }
+
+  /* All On / All Off (and the gaps key) stay at the top while the list scrolls */
+  .legend-pinned { position: sticky; top: -8px; z-index: 2; background: #fff;
+    margin: -8px -10px 8px; padding: 8px 10px; border-bottom: 1px solid #e3e3e3; }
   #legend h4 { margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #333; }
   .legend-item {
     display: flex; align-items: center; gap: 7px; margin-bottom: 5px;
@@ -307,6 +340,7 @@
   .pp-narrative.transect-narrative { background: #eef4ee; border-bottom-color: #c5dfc5; }
   .pp-narrative b { color: #1a3a5c; }
   .pp-narrative.transect-narrative b { color: #1e5c40; }
+  .pp-note { margin: 8px 18px; padding: 4px 10px; border-left: 3px solid #1a3a5c; font-size: 11.5px; color: #444; font-style: italic; line-height: 1.5; }
   .pp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .pp-table tr:nth-child(even) td { background: #f7f9fb; }
   .pp-table td { padding: 6px 18px; vertical-align: top; border-bottom: 1px solid #ececec; line-height: 1.45; }
@@ -346,25 +380,104 @@
   .asbs-table td:first-child { font-weight: 600; color: #6a4c93; white-space: nowrap; width: 38%; }
   .asbs-table td:last-child  { color: #111; }
 
+  /* Monitoring coverage panel (Gaps layer): full card, collapsible to a chip */
   #gap-stats-box {
     display: none;
+    flex-direction: column;
+    align-items: flex-start;
     position: absolute;
     bottom: 30px;
     left: 10px;
     z-index: 1000;
-    background: white;
-    padding: 10px 14px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 12px;
-    min-width: 200px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    color: #1f2a33;
   }
-  #gap-stats-box h4 { font-size: 13px; font-weight: bold; color: #333; margin-bottom: 8px; }
-  #gap-stats-box table { width: 100%; border-collapse: collapse; }
-  #gap-stats-box td { padding: 3px 6px; }
-  #gap-stats-box td:first-child { color: #666; }
-  #gap-stats-box td:last-child { font-weight: bold; text-align: right; }
+  .gap-card { width: 440px; max-width: calc(100vw - 46px); box-sizing: border-box; background: #fff;
+    border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.18); padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 150px); overflow-y: auto; }
+  .gap-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .gap-title { font-size: 15px; font-weight: 700; color: #1a3a5c; }
+  .gap-sub { font-size: 12px; color: #56626c; margin-top: 2px; }
+  .gap-scope { font-size: 12px; font-weight: 600; color: #1a3a5c; background: #eef3f8; border-radius: 8px; padding: 6px 10px;
+               display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .gap-scope-all { flex-shrink: 0; height: 24px; padding: 0 10px; border-radius: 12px; border: 1px solid #c9d2d9; background: #fff;
+                   color: #183874; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .gap-scope-all:hover { background: #f0f4f8; }
+  .gap-icon-btn { width: 30px; height: 30px; border-radius: 15px; border: 1px solid #c9d2d9; background: #fff;
+    color: #1a3a5c; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+  .gap-icon-btn:hover { background: #f0f4f8; }
+  /* Legend header: All on / All off control and the Monitoring gaps status bar */
+  .lg-seg { display: flex; height: 24px; border: 1px solid #c9d2d9; border-radius: 6px; overflow: hidden; }
+  .lg-seg button { flex: 1; border: 0; padding: 0; background: #f0f4f8; color: #39434b; font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+  .lg-seg button + button { border-left: 1px solid #c9d2d9; }
+  .lg-seg button:hover { background: #e3e9ef; }
+  .lg-seg button.all-off { background: #1a3a5c; color: #fff; }   /* All off is always navy */
+  .lg-seg button.all-off:hover { background: #24507a; }
+  .lg-gapbar { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 5px 5px 5px 10px; border-radius: 8px;
+               background: #eef3f8; font-size: 12px; color: #56626c; }
+  .lg-gapbar b { color: #1a3a5c; font-weight: 700; }
+  .lg-gapbar .sw { width: 20px; height: 14px; flex-shrink: 0; background: #999999; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); }
+  .lg-gapbar .info { margin-left: auto; width: 26px; height: 26px; flex-shrink: 0; padding: 0; border: 1px solid #c9d2d9; border-radius: 13px;
+                     background: #fff; color: #1a3a5c; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .lg-gapbar .info:hover, .lg-gapbar .info.open { background: #f0f4f8; border-color: #1a3a5c; }
+  .lg-gaphelp { margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: #f7f9fb; border: 1px solid #e3e8ec;
+                font-size: 11.5px; line-height: 1.45; color: #39434b; }
+  .lg-gaphelp b { color: #1a3a5c; }
+  .gap-big { display: flex; justify-content: space-between; align-items: flex-end; }
+  .gap-big .num { font-size: 30px; font-weight: 700; line-height: 1; }
+  .gap-big .lbl { font-size: 12px; color: #56626c; margin-top: 3px; }
+  .gap-big .lbl-key { font-size: 13px; font-weight: 700; }
+  .gap-bar { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: #b3bcc3; }  /* grey = gap */
+  .gap-bar .mon { background: #183874; width: 0; }                                                     /* navy = monitored */
+  .gap-divider { height: 1px; background: #c9d2d9; margin: 4px 0; flex-shrink: 0; }
+  .gap-section { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #56626c;
+                  display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .gap-section .col-gap { color: #39434b; width: 50px; text-align: right; flex-shrink: 0; }
+  /* Grey | Color: how gap cells are drawn on the map */
+  .gap-colormode { margin-left: auto; display: inline-flex; align-items: baseline; }
+  .gap-colormode button { font: inherit; letter-spacing: inherit; text-transform: inherit; background: none; border: none;
+    padding: 0 6px; color: #8a949c; cursor: pointer; }
+  .gap-colormode button + button { border-left: 1px solid #d5dbe0; }
+  .gap-colormode button:hover { color: #1a3a5c; }
+  .gap-colormode button.on { color: #1a3a5c; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .gap-colormode button:focus-visible { outline: 2px solid #1a3a5c; outline-offset: 2px; border-radius: 2px; }
+  .gap-card { --r1: #5b8a8f; --r2: #b58a3c; --r3: #a35d6a; --r4: #6b6fa8; }
+  .gap-row .rsw { display: none; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; }
+  .gap-card .key-region, .gap-card.by-region .key-grey { display: none; }
+  .gap-card.by-region .key-region { display: inline; }
+  .gap-card.by-region .gap-row .rsw { display: inline-block; }
+  .gap-card.by-region .gap-row:nth-child(1) .rsw, .gap-card.by-region .gap-row:nth-child(1) .gap-bar { background: var(--r1); }
+  .gap-card.by-region .gap-row:nth-child(2) .rsw, .gap-card.by-region .gap-row:nth-child(2) .gap-bar { background: var(--r2); }
+  .gap-card.by-region .gap-row:nth-child(3) .rsw, .gap-card.by-region .gap-row:nth-child(3) .gap-bar { background: var(--r3); }
+  .gap-card.by-region .gap-row:nth-child(4) .rsw, .gap-card.by-region .gap-row:nth-child(4) .gap-bar { background: var(--r4); }
+  .gap-rows { display: flex; flex-direction: column; gap: 9px; }
+  .gap-row { display: grid; grid-template-columns: 172px minmax(0, 1fr) 50px; gap: 12px; align-items: center; }
+  .gap-row .name { font-size: 13px; font-weight: 600; }
+  .gap-row .where { font-size: 11px; color: #56626c; }
+  .gap-row .gap-bar { height: 8px; border-radius: 4px; }
+  .gap-row .gap-bar .mon { background: #1b3d7d; }   /* thin bars read greyer, so a touch bluer */
+  .gap-row .val { font-size: 13px; font-weight: 700; text-align: right; white-space: nowrap; }
+  .gap-key { display: flex; gap: 14px; font-size: 11px; color: #56626c; align-items: center; flex-wrap: wrap; }
+  .gap-key .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .gap-info { font-size: 12px; line-height: 1.45; background: #f2f5f7; border-radius: 8px; padding: 8px 10px; }
+  .gap-chip { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 14px 8px 16px;
+    background: #fff; border: none; border-radius: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    cursor: pointer; font: inherit; color: #1f2a33; text-align: left; }
+  .gap-chip:hover { background: #f7f9fb; }
+  .gap-chip .nums { display: flex; gap: 8px; align-items: baseline; font-size: 12px; color: #56626c; }
+  .gap-chip .gap-bar { width: 200px; height: 6px; border-radius: 3px; margin-top: 5px; }
+  @media (max-width: 600px) {
+    /* phones: sit at the top next to the zoom buttons, clear of the legend */
+    #gap-stats-box { bottom: auto; top: 10px; left: 54px; }
+    .gap-card { max-width: calc(100vw - 64px); max-height: 55vh; }
+    .gap-chip .gap-bar { width: 170px; }
+    /* panel opens downward here, so flip the arrows */
+    .gap-chip svg, .gap-head .gap-icon-btn:last-child svg { transform: rotate(180deg); }
+  }
+  @media (max-width: 480px) {
+    .gap-row { grid-template-columns: 112px minmax(0, 1fr) 46px; }
+    .gap-row .where { display: none; }
+    .gap-big .num { font-size: 26px; }
+  }
 
 /* ── Welcome Modal ───────────────────────────── */
 
@@ -720,6 +833,19 @@
 
 }
 
+
+
+  /* top bar: slightly rounder corners, same sizes as before */
+  .dropdown-btn, .toggle-row, .res-opt, .ctrl-btn { border-radius: 8px; }
+  .ctrl-btn { font-weight: 600; }
+  .ctrl-btn.secondary { background: #fff; color: #1a3a5c; border: 1px solid #ccc; }
+  .ctrl-btn.secondary:hover { background: #f0f4f8; }
+
+  /* HELP button under the zoom buttons: same box as + / −, text reads sideways */
+  #help-btn { display: block; width: 26px; padding: 8px 0; border: none; border-radius: 4px; background: #1a3a5c; color: #fff;
+    writing-mode: vertical-rl; font: bold 11px Arial, sans-serif; letter-spacing: 0.12em; cursor: pointer; }
+  #help-btn:hover { background: #2a6496; }
+  .leaflet-bar.help-ctrl, .leaflet-touch .leaflet-bar.help-ctrl { border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
 </style>
 </head>
 <body>
@@ -742,10 +868,9 @@
   <!-- Program -->
   <div class="ctrl-item" style="position:relative;">
     <span class="ctrl-label">Program</span>
-    <div class="dropdown-btn" id="prog-btn" onclick="toggleDropdown('prog')" style="min-width:150px;">
-
-      <span id="prog-label">All Programs</span>
-      <span style="font-size:9px;color:#888;">&#9660;</span>
+    <div class="dropdown-btn" id="prog-btn" onclick="toggleDropdown('prog')" style="width:150px;min-width:0;box-sizing:border-box;overflow:hidden;">
+      <span id="prog-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">All Programs</span>
+      <span style="font-size:9px;color:#888;flex-shrink:0;">&#9660;</span>
     </div>
     <div class="dropdown-panel" id="prog-panel">
       <div class="dropdown-actions">
@@ -762,7 +887,7 @@
   <!-- Parameter -->
   <div class="ctrl-item" style="position:relative;">
     <span class="ctrl-label">Parameter</span>
-    <div class="dropdown-btn" id="param-btn" onclick="toggleParamDropdown()" style="min-width:120px;max-width:140px;overflow:hidden;">
+    <div class="dropdown-btn" id="param-btn" onclick="toggleParamDropdown()" style="width:124px;min-width:0;box-sizing:border-box;overflow:hidden;">
       <span id="param-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">All Parameters</span>
       <span style="font-size:9px;color:#888;flex-shrink:0;">&#9660;</span>
     </div>
@@ -782,9 +907,9 @@
   <!-- EOV -->
   <div class="ctrl-item" style="position:relative;">
     <span class="ctrl-label">EOV</span>
-    <div class="dropdown-btn" id="eov-btn" onclick="toggleDropdown('eov')" style="min-width:100px;">
-      <span id="eov-label">All EOVs</span>
-      <span style="font-size:9px;color:#888;">&#9660;</span>
+    <div class="dropdown-btn" id="eov-btn" onclick="toggleDropdown('eov')" style="width:100px;min-width:0;box-sizing:border-box;overflow:hidden;">
+      <span id="eov-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">All EOVs</span>
+      <span style="font-size:9px;color:#888;flex-shrink:0;">&#9660;</span>
     </div>
     <div class="dropdown-panel" id="eov-panel" style="min-width:200px;">
       <div class="dropdown-actions">
@@ -809,9 +934,9 @@
   <div class="toggle-wrap" style="position:relative;">
     <label class="toggle-row" title="Show WWTP / discharger monitoring stations">
       <input type="checkbox" id="discharger-toggle" onchange="toggleDischargers()">
-      <span>Dischargers</span>
+      <span>Discharger</span>
     </label>
-    <div style="display:flex;align-items:center;gap:5px;">
+    <div class="toggle-sub-row" style="display:flex;align-items:center;gap:5px;">
       <div class="toggle-sub" id="discharger-status">Not loaded</div>
       <button id="discharger-filter-btn" onclick="toggleDischargerSub()" 
         style="display:none;font-size:10px;padding:1px 5px;border:1px solid #aaa;border-radius:3px;
@@ -877,6 +1002,7 @@
             <div class="dropdown-search">
               <input type="text" id="dparam-search" placeholder="Search parameters..." oninput="filterDropdownList('dparam')">
             </div>
+            <div id="dparam-avail-note" class="param-avail-note" style="display:none;"></div>
             <div id="dparam-checkbox-list"></div>
           </div>
         </div>
@@ -889,7 +1015,7 @@
   <div class="toggle-wrap">
     <label class="toggle-row" title="Load transect lines from transects.csv">
       <input type="checkbox" id="transect-toggle" onchange="toggleTransects()">
-      <span>Transects</span>
+      <span>Transect</span>
     </label>
     <div class="toggle-sub" id="transect-status">Not loaded</div>
   </div>
@@ -905,7 +1031,7 @@
 
   <!-- Gaps toggle -->
   <div class="toggle-wrap">
-    <label class="toggle-row" title="Show unmonitored areas within 13.4 mile coastal buffer">
+    <label class="toggle-row" title="Show unmonitored ocean within 13.4 miles of the coast (1 km cells)">
       <input type="checkbox" id="gaps-toggle" onchange="toggleGaps()">
       <span>Gaps</span>
     </label>
@@ -917,6 +1043,7 @@
     <div class="toggle-row" id="other-layers-btn" onclick="toggleOtherLayersPanel()" style="justify-content:space-between;">
       <span id="other-layers-label">Other Layers</span>
       <span style="font-size:9px;color:#888;font-weight:400;text-transform:none;">&#9660;</span>
+      <span class="ol-count" id="other-layers-count"></span>
     </div>
     <div class="toggle-sub">&nbsp;</div>
     <div class="dropdown-panel" id="other-layers-panel" style="position:absolute;min-width:230px;max-width:260px;padding:4px 0;">
@@ -1006,8 +1133,8 @@
 
   <div class="btn-row">
     <div class="btn-row-btns">
-      <button class="ctrl-btn" onclick="zoomToResults()" style="background:#2a6496;">Zoom</button>
-      <button class="ctrl-btn" onclick="resetFilters()" style="background:#888;">Reset</button>
+      <button class="ctrl-btn secondary" onclick="resetFilters()" title="Clear all program and discharger filters">&#x21BA; Reset</button>
+      <button class="ctrl-btn" onclick="zoomToResults()" style="background:#2a6496;" title="Zoom to the hexes and discharger sites shown">&#x2922; Zoom</button>
     </div>
     <div id="status"></div>
   </div>
@@ -1152,26 +1279,74 @@
     <div class="bathy-labels" style="width:100%;font-size:11px;"><span>0 m</span><span>1000 m</span><span>3000+ m</span></div>
   </div>
   <div id="legend"></div>
-  <div id="gap-stats-box" style="display:none;flex-direction:row;gap:16px;">
-    <div>
-      <h4>🔍 Monitoring Coverage</h4>
-      <table>
-        <tr><td>Total buffer area</td><td id="gs-total">—</td></tr>
-        <tr><td>Monitored area</td><td id="gs-monitored">—</td></tr>
-        <tr><td>Unmonitored area</td><td id="gs-gap">—</td></tr>
-        <tr><td>% Monitored</td><td id="gs-pct-mon">—</td></tr>
-        <tr><td>% Unmonitored</td><td id="gs-pct-gap">—</td></tr>
-      </table>
+  <!-- Monitoring coverage panel (filled from gap_stats.json by fillGapStats) -->
+  <div id="gap-stats-box" style="display:none;">
+    <div id="gap-card" class="gap-card" role="region" aria-label="Monitoring Coverage &amp; Gaps">
+      <div class="gap-head">
+        <div>
+          <div class="gap-title">Monitoring Coverage &amp; Gaps</div>
+          <div class="gap-sub">Ocean within 13.4 mi of shore · 1 km cells · since 2000</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button id="gap-info-btn" class="gap-icon-btn" aria-label="How gaps are measured" aria-expanded="false" onclick="toggleGapInfo()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7.2" x2="8" y2="11.2"/><line x1="8" y1="4.8" x2="8" y2="4.9"/></svg>
+          </button>
+          <button class="gap-icon-btn" aria-label="Collapse coverage panel" onclick="setGapCollapsed(true)">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,7 9,12 14,7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="gap-scope" id="gs-scope" style="display:none;"></div>
+      <div id="gap-info" class="gap-info" style="display:none;">
+        Monitoring Gap coverage is calculated for <b>all <span id="gs-info-n">34</span> programs</b> by default.
+        Check or uncheck programs in the Programs list to see coverage for just those.
+        Click <b>All programs</b> to count every program again.
+      </div>
+      <div class="gap-big">
+        <div><div class="num" id="gs-pct-mon" style="color:#183874;">—</div><div class="lbl"><b class="lbl-key" style="color:#183874;">Monitored</b> · <span id="gs-monitored">—</span></div></div>
+        <div style="text-align:right;"><div class="num" id="gs-pct-gap" style="color:#5a666c;">—</div><div class="lbl"><b class="lbl-key" style="color:#39434b;">Gap</b> · <span id="gs-gap">—</span></div></div>
+      </div>
+      <div class="gap-bar"><div class="mon" id="gs-bar"></div></div>
+      <div class="gap-divider"></div>
+      <div class="gap-section"><span>Gap % by Region</span><span class="gap-colormode" role="group" aria-label="Gap cell colours on the map"><button type="button" class="on" aria-pressed="true" onclick="setGapColorMode(false)">Grey</button><button type="button" aria-pressed="false" onclick="setGapColorMode(true)">Color</button></span><span class="col-gap">Gap</span></div>
+      <div class="gap-rows">
+        <div class="gap-row">
+          <div><div class="name"><span class="rsw"></span>North Coast</div><div class="where">Oregon to Cape Mendocino</div></div>
+          <div class="gap-bar" title="Navy = monitored, rest = gap"><div class="mon" id="gs-r1-bar"></div></div>
+          <div class="val" id="gs-r1">—</div>
+        </div>
+        <div class="gap-row">
+          <div><div class="name"><span class="rsw"></span>Bay Area / Central</div><div class="where">Cape Mendocino to Santa Cruz</div></div>
+          <div class="gap-bar" title="Navy = monitored, rest = gap"><div class="mon" id="gs-r2-bar"></div></div>
+          <div class="val" id="gs-r2">—</div>
+        </div>
+        <div class="gap-row">
+          <div><div class="name"><span class="rsw"></span>Central Coast</div><div class="where">Santa Cruz to Pt. Conception</div></div>
+          <div class="gap-bar" title="Navy = monitored, rest = gap"><div class="mon" id="gs-r3-bar"></div></div>
+          <div class="val" id="gs-r3">—</div>
+        </div>
+        <div class="gap-row">
+          <div><div class="name"><span class="rsw"></span>Southern CA</div><div class="where">Pt. Conception to Mexico</div></div>
+          <div class="gap-bar" title="Navy = monitored, rest = gap"><div class="mon" id="gs-r4-bar"></div></div>
+          <div class="val" id="gs-r4">—</div>
+        </div>
+      </div>
+      <div class="gap-key">
+        <span><span class="sw" style="background:#183874;"></span>Monitored</span>
+        <span class="key-grey"><span class="sw" style="background:#b3bcc3;"></span>Gap = grey cells on the map</span><span class="key-region">Gap cells coloured by region</span>
+      </div>
     </div>
-    <div style="border-left:1px solid #ddd;padding-left:16px;">
-      <h4>📍 Gaps by Region</h4>
-      <table>
-        <tr><td>North Coast</td><td id="gs-r1">—</td></tr>
-        <tr><td>Bay Area / Central</td><td id="gs-r2">—</td></tr>
-        <tr><td>Central Coast</td><td id="gs-r3">—</td></tr>
-        <tr><td>Southern CA</td><td id="gs-r4">—</td></tr>
-      </table>
-    </div>
+    <button id="gap-chip" class="gap-chip" style="display:none;" aria-expanded="false" aria-label="Show monitoring coverage details" onclick="setGapCollapsed(false)">
+      <div>
+        <div class="nums">
+          <span id="gs-chip-mon" style="font-size:17px;font-weight:700;color:#183874;">—</span><span>monitored</span>
+          <span style="color:#b3bcc3;">·</span>
+          <span id="gs-chip-gap" style="font-size:17px;font-weight:700;color:#5a666c;">—</span><span>gap</span>
+        </div>
+        <div class="gap-bar"><div class="mon" id="gs-chip-bar"></div></div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#1a3a5c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,11 9,6 14,11"/></svg>
+    </button>
   </div>
 
 </div>
@@ -1313,14 +1488,19 @@ document.getElementById('legend').addEventListener('wheel', function(e) {
 
 let legendActiveTab = 'programs';
 
+var gapHelpOpen = false;   // legend "Learn more" about how checkboxes change the gaps
+function toggleGapHelp() { gapHelpOpen = !gapHelpOpen; buildLegend(); }
+
 function buildLegend() {
   const legend = document.getElementById('legend');
+  // Turning any program back on ends "Hide program hexes"
+  if (gapsOnlySaved && visiblePrograms.size > 0) gapsOnlySaved = null;
+  recomputeLiveGaps();
 
   const tabs = [
     { id: 'programs',    label: 'Programs' },
     document.getElementById('transect-toggle').checked    ? { id: 'transects',   label: 'Transects' }   : null,
     document.getElementById('discharger-toggle').checked  ? { id: 'dischargers', label: 'Dischargers' } : null,
-    document.getElementById('gaps-toggle').checked        ? { id: 'gaps',        label: 'Gaps' }        : null,
     document.getElementById('wea-toggle').checked ? { id: 'wea', label: 'Wind Energy' } : null,
     document.getElementById('asbs-toggle').checked ? { id: 'asbs', label: 'ASBS Areas' } : null,
     document.getElementById('mpa-toggle').checked ? { id: 'mpa', label: 'MPAs' } : null,
@@ -1339,10 +1519,31 @@ function buildLegend() {
 
   if (legendActiveTab === 'programs') {
     const allOn = [...Object.keys(programColors)].every(n => visiblePrograms.has(n));
-    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button onclick="toggleAllPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#1a3a5c':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
-      <button onclick="toggleAllPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn&&visiblePrograms.size===0?'#1a3a5c':'#f0f4f8'};color:${!allOn&&visiblePrograms.size===0?'white':'#444'};">All Off</button>
-    </div>`;
+    const gapsOn = document.getElementById('gaps-toggle').checked;
+    // Header: one All on / All off control, plus a slim status bar while Gaps is on
+    let gapBar = '';
+    if (gapsOn) {
+      const progSet = legendProgramNames();
+      const nAll = progSet.size;
+      const nCount = zoneCells ? [...activeGapPrograms()].filter(p => progSet.has(p)).length : nAll;
+      const what = !zoneCells || nCount === nAll ? 'all ' + nAll + ' programs'
+        : gapsCountAll() ? 'all ' + nCount + ' programs with the selected filters'
+        : nCount === 0 ? 'no programs checked'
+        : nCount + ' checked program' + (nCount === 1 ? '' : 's');
+      gapBar = `<div class="lg-gapbar">
+        <span class="sw"></span><span><b>Monitoring gaps</b> · ${what}</span>
+        <button class="info${gapHelpOpen ? ' open' : ''}" onclick="toggleGapHelp()" aria-expanded="${gapHelpOpen}"
+          aria-label="How program checkboxes change the gaps" title="Learn more">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7.2" x2="8" y2="11.2"/><line x1="8" y1="4.8" x2="8" y2="4.9"/></svg>
+        </button></div>${gapHelpOpen ? `<div class="lg-gaphelp">
+        Monitoring Gap coverage is calculated for <b>all ${nAll} programs</b> by default.
+        Check or uncheck programs below to see coverage for just those.
+        Click <b>All programs</b> to count every program again.</div>` : ''}`;
+    }
+    bodyHtml += `<div class="legend-pinned"><div class="lg-seg">
+      <button onclick="toggleAllPrograms(true)">All on</button>
+      <button class="all-off" onclick="toggleAllPrograms(false)">All off</button>
+    </div>${gapBar}</div>`;
       const hexPrograms = new Set(
         allFeatures.map(f => normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||''))
       );
@@ -1376,10 +1577,10 @@ function buildLegend() {
     const transectProgs = [...new Set(
       transectFeatures.map(r => normalizeProgram(r['program'] || r['SVY'] || '')).filter(Boolean)
     )].sort();
-    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button onclick="setAllTransectPrograms(true);buildLegend();" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#f0f4f8;color:#444;">All On</button>
-      <button onclick="setAllTransectPrograms(false);buildLegend();" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#f0f4f8;color:#444;">All Off</button>
-    </div>`;
+    bodyHtml += `<div class="legend-pinned"><div class="lg-seg">
+      <button onclick="setAllTransectPrograms(true);buildLegend();">All on</button>
+      <button class="all-off" onclick="setAllTransectPrograms(false);buildLegend();">All off</button>
+    </div></div>`;
     transectProgs.forEach(prog => {
       const color = programColors[prog] || '#1e7a4a';
       const visible = visibleTransectPrograms.has(prog);
@@ -1393,10 +1594,10 @@ function buildLegend() {
 
   else if (legendActiveTab === 'dischargers') {
     const allDOn = Object.keys(dischargerColorMap).every(n => !hiddenDischargers.has(n));
-    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button onclick="setAllDischargers(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#f0f4f8;color:#444;">All On</button>
-      <button onclick="setAllDischargers(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:#f0f4f8;color:#444;">All Off</button>
-    </div>`;
+    bodyHtml += `<div class="legend-pinned"><div class="lg-seg">
+      <button onclick="setAllDischargers(true)">All on</button>
+      <button class="all-off" onclick="setAllDischargers(false)">All off</button>
+    </div></div>`;
 
     // Build set of names currently rendered (not hidden by param/name filter)
     const selectedDNames  = getCheckedValues('dname');
@@ -1438,7 +1639,7 @@ function buildLegend() {
   else if (legendActiveTab === 'gaps') {
     bodyHtml += `<div class="legend-item" style="cursor:default;">
       <div class="legend-swatch" style="background:#cccccc;border-color:#888888;"></div>
-      <span>Unmonitored Areas</span></div>`;
+      <span>Unmonitored area</span></div>`;
   }
 
   else if (legendActiveTab === 'wea') {
@@ -1461,37 +1662,10 @@ function buildLegend() {
   const allOn = weaPrograms.every(p => visibleWEAPrograms.has(p));
 
   bodyHtml += `
-    <div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button
-        onclick="setAllWEAPrograms(true)"
-        style="
-          flex:1;
-          padding:3px 6px;
-          font-size:11px;
-          cursor:pointer;
-          border:1px solid #ccc;
-          border-radius:3px;
-          background:${allOn ? '#1a3a5c' : '#f0f4f8'};
-          color:${allOn ? 'white' : '#444'};
-        ">
-        All On
-      </button>
-
-      <button
-        onclick="setAllWEAPrograms(false)"
-        style="
-          flex:1;
-          padding:3px 6px;
-          font-size:11px;
-          cursor:pointer;
-          border:1px solid #ccc;
-          border-radius:3px;
-          background:${!allOn ? '#1a3a5c' : '#f0f4f8'};
-          color:${!allOn ? 'white' : '#444'};
-        ">
-        All Off
-      </button>
-    </div>
+    <div class="legend-pinned"><div class="lg-seg">
+      <button onclick="setAllWEAPrograms(true)">All on</button>
+      <button class="all-off" onclick="setAllWEAPrograms(false)">All off</button>
+    </div></div>
   `;
 
   weaPrograms.forEach(prog => {
@@ -1552,10 +1726,10 @@ function buildLegend() {
     if (!window.visibleASBSPrograms) window.visibleASBSPrograms = new Set(asbsPrograms);
     const allOn = asbsPrograms.every(p => visibleASBSPrograms.has(p));
 
-    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button onclick="setAllASBSPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#6a4c93':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
-      <button onclick="setAllASBSPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn?'#6a4c93':'#f0f4f8'};color:${!allOn?'white':'#444'};">All Off</button>
-    </div>`;
+    bodyHtml += `<div class="legend-pinned"><div class="lg-seg">
+      <button onclick="setAllASBSPrograms(true)">All on</button>
+      <button class="all-off" onclick="setAllASBSPrograms(false)">All off</button>
+    </div></div>`;
 
     asbsPrograms.forEach(prog => {
       const color = getColor(prog);
@@ -1579,10 +1753,10 @@ function buildLegend() {
     if (!window.visibleMPAPrograms) window.visibleMPAPrograms = new Set(mpaPrograms);
     const allOn = mpaPrograms.every(p => visibleMPAPrograms.has(p));
 
-    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button onclick="setAllMPAPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#0b7285':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
-      <button onclick="setAllMPAPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn?'#0b7285':'#f0f4f8'};color:${!allOn?'white':'#444'};">All Off</button>
-    </div>`;
+    bodyHtml += `<div class="legend-pinned"><div class="lg-seg">
+      <button onclick="setAllMPAPrograms(true)">All on</button>
+      <button class="all-off" onclick="setAllMPAPrograms(false)">All off</button>
+    </div></div>`;
 
     mpaPrograms.forEach(prog => {
       const color = getColor(prog);
@@ -1606,10 +1780,10 @@ function buildLegend() {
     if (!window.visibleNMSPrograms) window.visibleNMSPrograms = new Set(nmsPrograms);
     const allOn = nmsPrograms.every(p => visibleNMSPrograms.has(p));
 
-    bodyHtml += `<div style="display:flex;gap:6px;margin-bottom:8px;">
-      <button onclick="setAllNMSPrograms(true)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${allOn?'#1d4ed8':'#f0f4f8'};color:${allOn?'white':'#444'};">All On</button>
-      <button onclick="setAllNMSPrograms(false)" style="flex:1;padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:3px;background:${!allOn?'#1d4ed8':'#f0f4f8'};color:${!allOn?'white':'#444'};">All Off</button>
-    </div>`;
+    bodyHtml += `<div class="legend-pinned"><div class="lg-seg">
+      <button onclick="setAllNMSPrograms(true)">All on</button>
+      <button class="all-off" onclick="setAllNMSPrograms(false)">All off</button>
+    </div></div>`;
 
     nmsPrograms.forEach(prog => {
       const color = getColor(prog);
@@ -1655,14 +1829,59 @@ function setAllDischargers(on) {
 const GEBCO_PATH = 'gebco_compressed.tif';
 
 const map = L.map('map', {
-  preferCanvas: false
-}).setView([35.2, -120], 6.5);
+  preferCanvas: false,
+  zoomSnap: 0.25,            // map can rest between whole zoom levels
+  zoomDelta: 0.5,            // each +/- click moves half a level
+  wheelPxPerZoomLevel: 35    // faster scroll-wheel zoom (Leaflet default 60)
+}).setView([35.2, -120], 7.25);
 map.createPane('polygonPane');
 map.getPane('polygonPane').style.zIndex = 200;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+// ── Basemap ──────────────────────────────────────────────────────────────────
+// Default: OpenStreetMap. Other options can be previewed with ?basemap=<key>
+// (web/basemap-preview.html shows them side by side). Where a basemap has a
+// separate labels layer, labels are drawn above the hexes so names stay readable.
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+const BASEMAPS = {
+  osm:      { base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              attribution: '&copy; OpenStreetMap contributors' },
+  positron: { base: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+              labels: 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+              subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO' },
+  voyager:  { base: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
+              labels: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
+              subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO' },
+  ocean:    { base: ESRI + 'Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+              labels: ESRI + 'Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 13,
+              attribution: 'Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri' },
+  gray:     { base: ESRI + 'Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+              labels: ESRI + 'Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 16,
+              attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ' },
+  // Esri Ocean seafloor, but plain place-name labels instead of ocean-feature names
+  oceancalm:{ base: ESRI + 'Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+              labels: ESRI + 'Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 13,
+              attribution: 'Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri' },
+  // Stadia Maps: no key on localhost; the live site needs a free Stadia account
+  // with calcofi.io added under "Authentication Configuration" (no code change).
+  smooth:   { base: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', subdomains: '',
+              attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>' },
+  bright:   { base: 'https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png', subdomains: '',
+              attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>' },
+  terrain:  { base: 'https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png',
+              labels: 'https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}{r}.png', subdomains: '',
+              attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>' }
+};
+const basemapKey = new URLSearchParams(location.search).get('basemap');
+const basemap = BASEMAPS[basemapKey] || BASEMAPS.osm;
+const tileOpts = { attribution: basemap.attribution, subdomains: basemap.subdomains ?? 'abc' };
+if (basemap.maxNativeZoom) tileOpts.maxNativeZoom = basemap.maxNativeZoom;
+L.tileLayer(basemap.base, tileOpts).addTo(map);
+if (basemap.labels) {
+  map.createPane('labelPane');
+  map.getPane('labelPane').style.zIndex = 650;          // above hexes (400) and markers (600)
+  map.getPane('labelPane').style.pointerEvents = 'none';
+  L.tileLayer(basemap.labels, Object.assign({}, tileOpts, { pane: 'labelPane', attribution: '' })).addTo(map);
+}
 
 const programColors   = {};
 programColors['Farallon Institute'] = '#C96B1A';
@@ -1680,6 +1899,10 @@ let colorIndex        = 0;
 let currentFiltered   = [];
 let allFeatures       = [];
 let hexLayer          = L.layerGroup().addTo(map);
+// Program hexes are drawn on a canvas in their own pane, above the gap cells
+map.createPane('hexPane');
+map.getPane('hexPane').style.zIndex = 410;
+const hexRenderer = L.canvas({ pane: 'hexPane', padding: 0.3 });
 let centroidCountMap  = {};   // centroid key → program count, used in popups
 let visiblePrograms   = new Set();
 let transectLayer    = L.layerGroup();
@@ -1784,6 +2007,29 @@ function reinjectPatterns() {
   Object.values(patternDefs).forEach(({ id, color, type }) => {
     injectPatternIntoSVG(id, color, type);
   });
+}
+
+// Same overlap patterns as the SVG ones above, as canvas fills
+const canvasPatterns = {};
+function getCanvasPattern(prog) {
+  if (canvasPatterns[prog]) return canvasPatterns[prog];
+  const { color, type } = patternDefs[getPatternId(prog)];
+  const c = document.createElement('canvas'); c.width = c.height = 10;
+  const g = c.getContext('2d');
+  g.fillStyle = color; g.fillRect(0, 0, 10, 10);
+  const dk = 'rgba(0,0,0,0.28)';
+  g.strokeStyle = dk; g.fillStyle = dk;
+  const line = (x1, y1, x2, y2, w) => { g.lineWidth = w; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
+  const dot  = (x, y, r) => { g.beginPath(); g.arc(x, y, r, 0, 2 * Math.PI); g.fill(); };
+  if (type === 'dots') dot(5, 5, 2);
+  else if (type === 'diag')       { line(0,10,10,0,1.8); line(-5,5,5,-5,1.8); line(5,15,15,5,1.8); }
+  else if (type === 'crosshatch') { line(0,10,10,0,1.2); line(0,0,10,10,1.2); }
+  else if (type === 'horiz')      line(0,5,10,5,2.5);
+  else if (type === 'vert')       line(5,0,5,10,2.5);
+  else if (type === 'revdiag')    { line(0,0,10,10,1.8); line(-5,5,5,15,1.8); line(5,-5,15,5,1.8); }
+  else if (type === 'dotgrid')    [2,7].forEach(x => [2,7].forEach(y => dot(x, y, 1.4)));
+  else if (type === 'diamonds')   { g.lineWidth = 1.8; g.beginPath(); g.moveTo(5,0); g.lineTo(10,5); g.lineTo(5,10); g.lineTo(0,5); g.closePath(); g.stroke(); }
+  return (canvasPatterns[prog] = g.createPattern(c, 'repeat'));
 }
 
 function getPatternId(prog) {
@@ -2039,6 +2285,7 @@ function toggleDischargers() {
     document.getElementById('dparam-label').textContent = 'All Parameters';
     document.querySelectorAll('#dtype-checkbox-list input').forEach(i=>i.checked=false);
     document.getElementById('dtype-label').textContent = 'All Types';
+    updateDischargerParamAvailability();
     document.getElementById('discharger-status').textContent='Hidden';
   }
   buildLegend();
@@ -2102,36 +2349,202 @@ function updateBathyScalebarBottom() {
   }
 }
 
+// ── Monitoring coverage panel ──────────────────────────────────────────────
+// Numbers come from gap_stats.json (build_gaps_code.R). Region values are the
+// % of each region that is gap; the bar's navy part is the monitored rest.
+function fillGapStats(s) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '—'; };
+  const pct = v => Math.max(0, Math.min(100, parseFloat(v) || 0));
+  set('gs-total', s.total); set('gs-monitored', s.monitored); set('gs-gap', s.gap);
+  set('gs-pct-mon', s.pct_mon); set('gs-pct-gap', s.pct_gap);
+  set('gs-chip-mon', s.pct_mon); set('gs-chip-gap', s.pct_gap);
+  document.getElementById('gs-bar').style.width = pct(s.pct_mon) + '%';
+  document.getElementById('gs-chip-bar').style.width = pct(s.pct_mon) + '%';
+  ['r1', 'r2', 'r3', 'r4'].forEach(k => {
+    set('gs-' + k, s[k]);
+    const bar = document.getElementById('gs-' + k + '-bar');
+    if (bar) bar.style.width = (s[k] ? 100 - pct(s[k]) : 0) + '%';
+  });
+}
+let gapPanelStarted = false;
+function setGapCollapsed(collapsed) {
+  document.getElementById('gap-card').style.display = collapsed ? 'none' : 'flex';
+  document.getElementById('gap-chip').style.display = collapsed ? 'flex' : 'none';
+  updateBathyScalebarBottom();
+}
+function toggleGapInfo() {
+  const info = document.getElementById('gap-info');
+  const open = info.style.display === 'none';
+  info.style.display = open ? 'block' : 'none';
+  document.getElementById('gap-info-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  updateBathyScalebarBottom();
+}
+
 let gapsLayer = L.layerGroup();
 let gapsLoaded = false;
+
+// Gaps are 1 km cells on every map view (1 km allows for boat drift); see
+// build_gaps_code.R. Drawn on canvas because there are tens of thousands of cells.
+const gapsRenderer = L.canvas({ padding: 0.5 });
+// ── Live gaps ────────────────────────────────────────────────────────────────
+// monitoring_gap_zone.geojson.gz (build_gaps_code.R) lists every 1 km cell in
+// the zone with the programs on it. Gaps are then recounted for whichever
+// programs are switched on. Without that file, the fixed gap cells are used.
+const GAP_STYLE = { color: '#555555', weight: 0.5, fillColor: '#999999', fillOpacity: 0.75 };
+// Grey | Color on the coverage card: grey by default, or one colour per region
+const GAP_REGION_COLORS = ['#5b8a8f', '#b58a3c', '#a35d6a', '#6b6fa8'];   // north to south
+const GAP_REGION_NAMES  = ['North Coast', 'Bay Area / Central', 'Central Coast', 'Southern CA'];
+var gapColorByRegion = false;
+function gapStyle(f) {
+  if (!gapColorByRegion) return GAP_STYLE;
+  const p = (f && f.properties) || {};
+  const i = p.r ? +p.r - 1 : GAP_REGION_NAMES.indexOf(p.region);   // live zone file: r; fallback file: region name
+  const c = GAP_REGION_COLORS[i] || '#999999';
+  return { color: c, weight: 0.5, fillColor: c, fillOpacity: 0.75 };
+}
+function setGapColorMode(byRegion) {
+  gapColorByRegion = byRegion;
+  document.getElementById('gap-card').classList.toggle('by-region', byRegion);
+  document.querySelectorAll('.gap-colormode button').forEach((b, i) => {
+    const on = (i === 1) === byRegion;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  gapsLayer.eachLayer(g => { if (g.setStyle) g.setStyle(gapStyle); });
+}
+var zoneCells = null;       // [{ f: feature, r: region 1-4, a: km², progs: [names] }]
+var zonePrograms = null;    // every program that appears in the zone file
+var liveGapKey = null;
+
+// Gaps start out counting ALL programs, even though only the default few are
+// drawn (drawing every program's hexes is slow). As soon as a program is checked
+// or unchecked, gaps count only the checked programs. "All programs" goes back.
+var gapsAllKey = null;      // the checked programs when "count all" started
+function progSetKey(s) { return [...s].sort().join('|'); }
+function gapsCountAll() { return gapsAllKey !== null; }
+function countAllPrograms() {
+  gapsAllKey = progSetKey(gapsOnlySaved || visiblePrograms);
+  recomputeLiveGaps(true);
+  buildLegend();
+}
+
+function activeGapPrograms() {
+  // "Hide program hexes" hides the hexes but keeps counting the programs that were on
+  const on = gapsOnlySaved || visiblePrograms;
+  if (gapsCountAll() && progSetKey(on) !== gapsAllKey) gapsAllKey = null;   // user changed programs
+  const base = gapsCountAll() ? legendProgramNames() : on;
+  const inFilter = new Set(currentFiltered.map(f => normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'')));
+  return new Set([...base].filter(p => inFilter.has(p)));
+}
+
+function recomputeLiveGaps(force) {
+  if (!zoneCells || !document.getElementById('gaps-toggle').checked) return;
+  const active = activeGapPrograms();
+  const key = progSetKey(active) + (gapsOnlySaved ? '#only' : '') + (gapsCountAll() ? '#all' : '');
+  if (!force && key === liveGapKey) return;
+  liveGapKey = key;
+
+  const tot = [0, 0, 0, 0, 0], gap = [0, 0, 0, 0, 0], gapFeatures = [];
+  zoneCells.forEach(c => {
+    tot[0] += c.a; tot[c.r] += c.a;
+    if (!c.progs.some(p => active.has(p))) { gap[0] += c.a; gap[c.r] += c.a; gapFeatures.push(c.f); }
+  });
+  gapsLayer.clearLayers();
+  L.geoJSON({ type: 'FeatureCollection', features: gapFeatures },
+    { renderer: gapsRenderer, interactive: false, style: gapStyle }).addTo(gapsLayer);
+
+  const km  = v => Math.round(v).toLocaleString() + ' km²';
+  const pct = (n, d) => d ? (100 * n / d).toFixed(1) + '%' : '';
+  fillGapStats({
+    total: km(tot[0]), monitored: km(tot[0] - gap[0]), gap: km(gap[0]),
+    pct_mon: pct(tot[0] - gap[0], tot[0]), pct_gap: pct(gap[0], tot[0]),
+    r1: pct(gap[1], tot[1]), r2: pct(gap[2], tot[2]), r3: pct(gap[3], tot[3]), r4: pct(gap[4], tot[4])
+  });
+  document.getElementById('gaps-status').textContent = gapFeatures.length.toLocaleString() + ' cells';
+
+  // Always say which programs the gaps are counted from
+  const legendProgs = legendProgramNames();
+  const nOn = [...active].filter(p => legendProgs.has(p)).length;
+  const plural = n => n + ' program' + (n === 1 ? '' : 's');
+  const total = legendProgs.size;
+  const whole = 'Monitored vs. Gap for the entire coast · ';
+  if (gapsCountAll()) {
+    setGapScope(nOn === total ? whole + 'all ' + total + ' programs'
+      : whole + 'all ' + plural(nOn) + ' with the selected filters', false);
+  } else {
+    setGapScope(nOn === 0 ? 'No programs checked, so every cell is a gap'
+      : nOn === total ? whole + 'all ' + total + ' programs'
+      : whole + nOn + ' checked program' + (nOn === 1 ? '' : 's') + (gapsOnlySaved ? ', hexes hidden' : ''),
+      nOn !== total);
+  }
+  updateBathyScalebarBottom();
+}
+
+// Programs listed in the legend (same set the legend builds its rows from)
+function legendProgramNames() {
+  return new Set(allFeatures.map(f => normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'')).filter(Boolean));
+}
+function setGapScope(text, showAllBtn) {
+  const infoN = document.getElementById('gs-info-n');
+  if (infoN) infoN.textContent = legendProgramNames().size;
+  const el = document.getElementById('gs-scope');
+  el.innerHTML = '<span></span>' + (showAllBtn && zoneCells ?
+    '<button class="gap-scope-all" onclick="countAllPrograms()" title="Count every program again (does not draw their hexes)">All programs</button>' : '');
+  el.firstChild.textContent = text;
+  el.style.display = text ? 'flex' : 'none';
+  document.getElementById('gap-chip').title = text;   // collapsed chip: shown on hover
+}
+
+function showGapPanel() {
+  if (!gapPanelStarted) { gapPanelStarted = true; if (window.innerWidth < 600) setGapCollapsed(true); }
+  document.getElementById('gap-stats-box').style.display = 'flex';
+  updateBathyScalebarBottom();
+}
 
 function loadGaps() {
   const statusEl = document.getElementById('gaps-status');
   statusEl.textContent = 'Loading…';
-  fetch('monitoring_gaps.geojson')
-    .then(r => { if(!r.ok) throw new Error('monitoring_gaps.geojson not found'); return r.json(); })
+  loadGzipGeoJSON('monitoring_gap_zone.geojson.gz')
+    .then(data => {
+      const names = new Set();
+      zoneCells = data.features.map(f => {
+        const progs = String(f.properties.p || '').split(';').filter(Boolean).map(p => normalizeProgram(p));
+        progs.forEach(p => names.add(p));
+        return { f: f, r: +f.properties.r || 0, a: +f.properties.a || 0, progs: progs };
+      });
+      zonePrograms = [...names];
+      // A zone file with no program names can't be recounted; use the fixed gap cells
+      if (zonePrograms.length === 0) {
+        console.warn('monitoring_gap_zone.geojson.gz has no program names; using monitoring_gaps.geojson.gz');
+        zoneCells = null; zonePrograms = null;
+        return loadStaticGaps();
+      }
+      gapsLoaded = true;
+      recomputeLiveGaps(true);
+      buildLegend();
+      showGapPanel();
+    })
+    .catch(() => loadStaticGaps());
+}
+
+function loadStaticGaps() {
+  const statusEl = document.getElementById('gaps-status');
+  loadGzipGeoJSON('monitoring_gaps.geojson.gz')
     .then(data => {
       gapsLayer.clearLayers();
-      L.geoJSON(data, {
-        style: { color: '#555555', weight: 0.5, fillColor: '#999999', fillOpacity: 0.75 }
-      }).addTo(gapsLayer);
+      L.geoJSON(data, { renderer: gapsRenderer, interactive: false, style: gapStyle }).addTo(gapsLayer);
       gapsLoaded = true;
-      statusEl.textContent = data.features.length.toLocaleString() + ' gap cells';
+      statusEl.textContent = data.features.length.toLocaleString() + ' cells';
       buildLegend();
       // Load stats from sidecar JSON
       fetch('gap_stats.json')
         .then(r => r.json())
         .then(s => {
-          document.getElementById('gs-total').textContent     = s.total;
-          document.getElementById('gs-monitored').textContent = s.monitored;
-          document.getElementById('gs-gap').textContent       = s.gap;
-          document.getElementById('gs-pct-mon').textContent   = s.pct_mon;
-          document.getElementById('gs-pct-gap').textContent   = s.pct_gap;
-          document.getElementById('gs-r1').textContent        = s.r1;
-          document.getElementById('gs-r2').textContent        = s.r2;
-          document.getElementById('gs-r3').textContent        = s.r3;
-          document.getElementById('gs-r4').textContent        = s.r4;
+          fillGapStats(s);
+          setGapScope('Monitored vs. Gap for the entire coast · all ' + legendProgramNames().size + ' programs', false);
+          // Phones start with the small chip so the panel doesn't cover the map
+          if (!gapPanelStarted) { gapPanelStarted = true; if (window.innerWidth < 600) setGapCollapsed(true); }
           document.getElementById('gap-stats-box').style.display = 'flex';
+          updateBathyScalebarBottom();
         })
         .catch(() => {
           document.getElementById('gap-stats-box').style.display = 'flex';
@@ -2193,7 +2606,7 @@ function renderASBSHexes() {
 
     if (selectedParams.length > 0) {
       const params = getProp(p, 'Parameters', 'parameters');
-      if (!selectedParams.some(sp => params.includes(sp))) return;
+      if (!selectedParams.some(sp => hasParam(params, sp))) return;
     }
     if (selectedEovs.length > 0) {
       const eovGroups = getProp(p, 'EOV Groups', 'EOV.Groups');
@@ -2310,7 +2723,7 @@ function renderMPAHexes() {
 
     if (selectedParams.length > 0) {
       const params = getProp(p, 'Parameters', 'parameters');
-      if (!selectedParams.some(sp => params.includes(sp))) return;
+      if (!selectedParams.some(sp => hasParam(params, sp))) return;
     }
     if (selectedEovs.length > 0) {
       const eovGroups = getProp(p, 'EOV Groups', 'EOV.Groups');
@@ -2429,7 +2842,7 @@ function renderNMSHexes() {
 
     if (selectedParams.length > 0) {
       const params = getProp(p, 'Parameters', 'parameters');
-      if (!selectedParams.some(sp => params.includes(sp))) return;
+      if (!selectedParams.some(sp => hasParam(params, sp))) return;
     }
     if (selectedEovs.length > 0) {
       const eovGroups = getProp(p, 'EOV Groups', 'EOV.Groups');
@@ -2499,21 +2912,86 @@ function toggleNMS() {
   buildLegend();
 }
 
+// "Hide program hexes" (legend switch): hide program hexes, remembering which were on, and bring them back after
+let gapsOnlySaved = null;
+function toggleGapsOnly() {
+  if (gapsOnlySaved) restoreGapsOnly();
+  else if (visiblePrograms.size > 0) {
+    gapsOnlySaved = new Set(visiblePrograms);
+    toggleAllPrograms(false);
+  } else {
+    buildLegend();   // nothing to hide: put the switch back to off
+  }
+}
+function restoreGapsOnly() {
+  if (!gapsOnlySaved) return;
+  gapsOnlySaved.forEach(p => visiblePrograms.add(p));
+  gapsOnlySaved = null;
+  syncProgDropdown();
+  renderFeatures(currentFiltered);
+  updateStatus(countVisible());
+  buildLegend();
+}
+
+// Gaps are measured on 1 km cells, so the map switches to 1 km while Gaps is on
+let resBeforeGaps = null;
+var programsBeforeGaps = null;   // programs shown before Gaps was switched on
+function setResolution(res) {
+  const radio = document.querySelector('input[name=hex-res][value="' + res + '"]');
+  if (radio) radio.checked = true;
+  switchResolution(res);
+}
+function updateGapResNote() {
+  const el = document.getElementById('res-status');
+  const warn = document.getElementById('gaps-toggle').checked && currentRes !== '1km';
+  if (warn) el.textContent = 'Gaps use 1 km cells';
+  else if (el.textContent === 'Gaps use 1 km cells') el.textContent = currentRes + ' loaded';
+  el.style.color = warn ? '#a5651e' : '';
+}
+
+function setGapsLayer(on) {
+  document.getElementById('gaps-toggle').checked = on;
+  toggleGaps();
+}
+
 function toggleGaps() {
   const on = document.getElementById('gaps-toggle').checked;
-  if (on) legendActiveTab = 'gaps'; 
   if (on) {
+    // Start with only the gap cells on the map (no program hexes) while the
+    // card counts every program. Checking programs then shows coverage for those.
+    programsBeforeGaps = new Set(gapsOnlySaved || visiblePrograms);
+    gapsOnlySaved = null;
+    visiblePrograms.clear();
+    syncProgDropdown();
+    renderFeatures(currentFiltered);
+    updateStatus(countVisible());
+    gapsAllKey = progSetKey(visiblePrograms);   // count all programs
+    if (currentRes !== '1km') { resBeforeGaps = currentRes; setResolution('1km'); }
     gapsLayer.addTo(map);
     if (!gapsLoaded) {
       loadGaps();
     } else {
       document.getElementById('gaps-status').textContent = 'Loaded';
+      recomputeLiveGaps(true);
       document.getElementById('gap-stats-box').style.display = 'flex';
       updateBathyScalebarBottom();  // ← add
     }
   } else {
+    // Nothing changed while Gaps was on: bring back the programs shown before
+    const untouched = gapsCountAll() && visiblePrograms.size === 0 && !gapsOnlySaved;
+    gapsAllKey = null;
     gapsLayer.remove();
-    legendActiveTab = 'programs';
+    restoreGapsOnly();
+    if (untouched && programsBeforeGaps) {
+      programsBeforeGaps.forEach(p => visiblePrograms.add(p));
+      syncProgDropdown();
+      renderFeatures(currentFiltered);
+      updateStatus(countVisible());
+    }
+    programsBeforeGaps = null;
+    if (resBeforeGaps && currentRes === '1km') setResolution(resBeforeGaps);
+    resBeforeGaps = null;
+    updateGapResNote();
     document.getElementById('gaps-status').textContent = 'Hidden';
     document.getElementById('gap-stats-box').style.display = 'none';
     updateBathyScalebarBottom();  // ← add
@@ -2656,7 +3134,7 @@ function renderWeaHexes() {
     // Apply parameter filter
     if (selectedParams.length > 0) {
       const params = getProp(p, 'Parameters', 'parameters');
-      if (!selectedParams.some(sp => params.includes(sp))) return;
+      if (!selectedParams.some(sp => hasParam(params, sp))) return;
     }
 
     // Apply EOV filter
@@ -2980,6 +3458,7 @@ let   currentRes = '3km';
 
 function switchResolution(res) {
   if (res === currentRes && resCache[res]) return;
+  if (res !== '1km') resBeforeGaps = null;
   currentRes = res;
   const statusEl = document.getElementById('res-status');
   statusEl.textContent = res + ' loading…';
@@ -2991,7 +3470,7 @@ function switchResolution(res) {
     renderFeatures(allFeatures);
     updateStatus(countVisible());
     buildLegend();
-    statusEl.textContent = res + ' loaded';
+    statusEl.textContent = res + ' loaded'; updateGapResNote();
     if (document.getElementById('wea-toggle').checked) {
         weaHexLoaded = false;
         loadWeaHexes(res);
@@ -3045,7 +3524,7 @@ function switchResolution(res) {
       }
 
       buildLegend();
-      statusEl.textContent = res + ' loaded';
+      statusEl.textContent = res + ' loaded'; updateGapResNote();
     })
     .catch(err=>{
       statusEl.textContent = '⚠ ' + err.message;
@@ -3055,6 +3534,8 @@ function switchResolution(res) {
     });
 }
 
+// Programs shown when the map opens and after Reset
+const DEFAULT_PROGRAMS = ['NOAA RREAS', 'SCCWRP', 'NOAA GBTS', 'CalCOFI', 'SWRCB'];
 loadGzipGeoJSON('Master_Inventory_3km.geojson.gz').then(data=>{  allFeatures=data.features;
   resCache['3km'] = data.features;   // seed cache so switching back is instant
   currentFiltered=allFeatures;
@@ -3066,13 +3547,7 @@ loadGzipGeoJSON('Master_Inventory_3km.geojson.gz').then(data=>{  allFeatures=dat
   allFeatures.forEach(f=>{ const prog=normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||''); if(prog) allProgs.add(prog); });
   [...allProgs].sort().forEach(prog=>getColor(prog)); // pre-assign colors in alpha order
 
-  const initialProgs = [
-    'NOAA RREAS',
-    'SCCWRP',
-    'NOAA GBTS',
-    'CalCOFI',
-    'SWRCB'
-  ].filter(p => allProgs.has(p));
+  const initialProgs = DEFAULT_PROGRAMS.filter(p => allProgs.has(p));
   initialProgs.forEach(p => visiblePrograms.add(p));
 
   currentFiltered = allFeatures;
@@ -3151,6 +3626,7 @@ fetch('Master_Polygons.geojson')
         layer.bindPopup(
           `<div class="pp-header"><div class="pp-title">${label}</div>` +
           `<div class="pp-subtitle">${full}</div></div>` +
+          programNoteHtml(normalizeProgram(p['Program Name'])) +
           (params ? `<div class="pp-narrative"><b>Parameters:</b> ${params}</div>` : '') +
           `<table class="pp-table">` +
           (freq ? `<tr><td>Frequency</td><td>${freq}</td></tr>` : '') +
@@ -3243,6 +3719,9 @@ fetch('Master_Polygons.geojson')
   })
   .catch(err => { console.warn('MPA layer load failed:', err.message); });
 
+// Exact match against a "a; b; c" parameter list. (A plain substring check
+// would let "Species Richness" also match "Fish Species Richness".)
+function hasParam(paramStr, sp) { return (paramStr || '').split(';').some(x => x.trim() === sp); }
 function getProp(p,...keys) { for(const k of keys){if(p[k]!==undefined&&p[k]!==null&&p[k]!==''&&p[k]!=='NA')return p[k];} return ''; }
 
 const overrides = {
@@ -3271,7 +3750,6 @@ const nameOverrides = {
   'BOON':             'UC Davis Bodega Ocean Observing Node',
   'CCFRP':            'California Collaborative Fisheries Research Program',
   'CCLEAN':           'Central Coast Long-term Environmental Assessment Network',
-  'CPS Survey':       'NOAA Southwest Fisheries Science Center - Coastal Pelagic Species Survey',
   'CUGN':             'California Underwater Glider Network',
   'CalCOFI':          'California Cooperative Oceanic Fisheries Investigations',
   'CalPoly Humboldt': 'California State Polytechnic University, Humboldt - Trinidad Pier Shore Station',
@@ -3298,6 +3776,15 @@ const nameOverrides = {
 
   
 };
+
+// History notes for programs that took over earlier surveys; shown in popups.
+const programNotes = {
+  'NOAA IWCPS': 'Catch data were previously collected under the Coastal Pelagic Species Survey (NOAA SWFSC).',
+};
+function programNoteHtml(progName) {
+  const n = programNotes[progName];
+  return n ? `<div class="pp-note">${n}</div>` : '';
+}
 
 const frequencyOverrides = {
   'NOAA WCOA': 'Every 3–5 years',
@@ -3394,7 +3881,7 @@ function populateDropdowns(features) {
 const DROPDOWNS = {
   param:  {btn:'param-btn', panel:'param-panel', list:'param-checkbox-list', search:'param-search', label:'param-label', default:'All Parameters'},
   prog:   {btn:'prog-btn',  panel:'prog-panel',  list:'prog-checkbox-list',  search:'prog-search',  label:'prog-label',  default:'All Programs'},
-  eov:    {btn:'eov-btn',   panel:'eov-panel',   list:'eov-checkbox-list',   search:null,           label:'eov-label',   default:'All'},
+  eov:    {btn:'eov-btn',   panel:'eov-panel',   list:'eov-checkbox-list',   search:null,           label:'eov-label',   default:'All EOVs'},
   dname:  {btn:'dname-btn', panel:'dname-panel', list:'dname-checkbox-list', search:'dname-search', label:'dname-label', default:'All'},
   dparam: {btn:'dparam-btn',panel:'dparam-panel',list:'dparam-checkbox-list',search:'dparam-search',label:'dparam-label',default:'All'},
   dtype:  {btn:'dtype-btn', panel:'dtype-panel', list:'dtype-checkbox-list', search:null,           label:'dtype-label', default:'All'},
@@ -3411,10 +3898,18 @@ function toggleOtherLayersPanel() {
   panel.style.display = 'block';
 }
 
+// Status text under the pills can be cut with "…"; hovering shows the full text
+document.querySelectorAll('#controls .toggle-sub, #status').forEach(el =>
+  new MutationObserver(() => { el.title = el.textContent.trim(); })
+    .observe(el, { childList: true, characterData: true, subtree: true }));
+
 function updateOtherLayersLabel() {
   const ids = ['wea-toggle','asbs-toggle','mpa-toggle','nms-toggle','beachwatch-toggle'];
   const n = ids.filter(id => document.getElementById(id).checked).length;
-  document.getElementById('other-layers-label').textContent = n > 0 ? 'Other Layers (' + n + ')' : 'Other Layers';
+  const badge = document.getElementById('other-layers-count');   // badge keeps the pill the same width
+  badge.textContent = n;
+  badge.style.display = n > 0 ? 'flex' : 'none';
+  document.getElementById('other-layers-btn').title = n > 0 ? n + ' other layer' + (n === 1 ? '' : 's') + ' on' : '';
 }
 
 document.addEventListener('click', function(e) {
@@ -3499,6 +3994,43 @@ function updateParamAvailability() {
   filterDropdownList('param');                         // re-apply search text + availability
 }
 
+// ── Discharger Parameter list follows the Name / Type selection ─────────────
+// Same idea as updateParamAvailability: when facilities (or facility types) are
+// checked, the discharger Parameter dropdown only lists what they measure.
+function updateDischargerParamAvailability() {
+  const names = getCheckedValues('dname');
+  const types = getCheckedValues('dtype');
+  let avail = null;                                    // null = nothing selected, show everything
+  if (names.length > 0 || types.length > 0) {
+    avail = new Set();
+    allDischargerFeatures.forEach(f => {
+      const name = valD(f.properties['facility_name'])||valD(f.properties['acrynom'])||valD(f.properties['site_name'])||'';
+      if (names.length > 0 && !names.includes(name)) return;
+      if (types.length > 0 && !types.includes(getFacilityType(name))) return;
+      const paramStr = valD(f.properties['parameter'])||valD(f.properties['parameters'])||'';
+      paramStr.split(';').map(x => x.trim()).filter(Boolean).forEach(x => avail.add(dparamCanonical(x)));
+    });
+  }
+  let shown = 0, total = 0;
+  document.querySelectorAll('#dparam-checkbox-list .param-option').forEach(div => {
+    const cb = div.querySelector('input');
+    const ok = !avail || avail.has(cb.value) || cb.checked;   // keep checked ones visible
+    div.dataset.avail = ok ? '1' : '0';
+    total++; if (ok) shown++;
+  });
+  const note = document.getElementById('dparam-avail-note');
+  if (note) {
+    if (avail && shown < total) {
+      const what = names.length === 1 ? 'the selected facility' : names.length > 1 ? 'the selected facilities' : 'the selected facility types';
+      note.textContent = `Showing ${shown} of ${total} parameters for ${what}`;
+      note.style.display = 'block';
+    } else {
+      note.style.display = 'none';
+    }
+  }
+  filterDropdownList('dparam');                        // re-apply search text + availability
+}
+
 function updateDropdownLabel(id) {
   const d=DROPDOWNS[id];
   const checked=[...document.querySelectorAll('#'+d.list+' input:checked')];
@@ -3506,7 +4038,9 @@ function updateDropdownLabel(id) {
   if(checked.length===0) label.textContent=d.default;
   else if(checked.length===1) label.textContent=checked[0].value;
   else label.textContent=checked.length+' selected';
+  label.title = checked.length > 1 ? checked.map(c => c.value).join(', ') : label.textContent;   // full text on hover
   if(id==='prog') updateParamAvailability();
+  if(id==='dname'||id==='dtype') updateDischargerParamAvailability();
   if(id==='dname'||id==='dparam'||id==='dtype') applyDischargerFilters();
   else applyFilters();
 }
@@ -3577,29 +4111,31 @@ function renderFeatures(features) {
     centroidCountMap[key].add(prog);
   });
 
-  // Pass 2: draw hex polygons — pattern fill ONLY where 2+ programs overlap
-  features.forEach(f=>{
-    const p=f.properties;
-    const prog=normalizeProgram(getProp(p,'Program Name','Program.Name')||'Unknown');
-    if(!visiblePrograms.has(prog)) return;
-    const color=getColor(prog);
-
+  // Pass 2: draw hex polygons — pattern fill ONLY where 2+ programs overlap.
+  // All hexes go on one canvas (much faster to pan/zoom than one SVG shape each).
+  const shown = features.filter(f =>
+    visiblePrograms.has(normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'Unknown')));
+  const hexStyle = f => {
+    const p = f.properties;
+    const prog = normalizeProgram(getProp(p,'Program Name','Program.Name')||'Unknown');
+    const color = getColor(prog);
     const fLat = parseFloat(getProp(p,'Centroid Latitude','Centroid.Latitude'));
     const fLon = parseFloat(getProp(p,'Centroid Longitude','Centroid.Longitude'));
     const cKey = !isNaN(fLat)&&!isNaN(fLon) ? fLat.toFixed(5)+','+fLon.toFixed(5) : '';
     const isOverlap = cKey && centroidCountMap[cKey] && centroidCountMap[cKey].size >= 2;
-
-
-    const patId    = isOverlap ? getPatternId(prog) : null;
-    const fillColor = isOverlap ? 'url(#'+patId+')' : color;
-    const fillOp    = isOverlap ? 0.85 : 0.6;
-
-    const layer=L.geoJSON(f,{style:{color:color,weight:1,fillColor:fillColor,fillOpacity:fillOp}});
-    layer.bindPopup(()=>buildHexPopup(p),{maxWidth:400,maxHeight:520});
-    layer.on('mouseover',function(){this.setStyle({weight:2.5,color:'#333'});});
-    layer.on('mouseout', function(){this.setStyle({weight:1,color:color,fillColor:fillColor,fillOpacity:fillOp});});
-    layer.addTo(hexLayer);
-  });
+    return { color: color, weight: 1,
+             fillColor: isOverlap ? getCanvasPattern(prog) : color,
+             fillOpacity: isOverlap ? 0.85 : 0.6 };
+  };
+  L.geoJSON({ type: 'FeatureCollection', features: shown }, {
+    renderer: hexRenderer,
+    style: hexStyle,
+    onEachFeature: (f, lyr) => {
+      lyr.bindPopup(() => buildHexPopup(f.properties), {maxWidth:400,maxHeight:520});
+      lyr.on('mouseover', function(){ this.setStyle({weight:2.5,color:'#333'}); });
+      lyr.on('mouseout',  function(){ this.setStyle(hexStyle(f)); });
+    }
+  }).addTo(hexLayer);
 
  
   if (chisPolygonLayer) {
@@ -3767,7 +4303,7 @@ function buildHexPopup(p) {
   const dRows=row('Overall Range',depthSafe)+row('Seafloor Depth',gebcoDisplay);
   const lRows=row('Latitude',lat?parseFloat(lat).toFixed(4):'')+row('Longitude',lon?parseFloat(lon).toFixed(4):'')+row('EOV Groups',eovDisplay);
   const tableRows=(sRows?sh('Sampling')+sRows:'')+(dRows?sh('Depth')+dRows:'')+(lRows?sh('Location')+lRows:'');
-  return `<div class="pp-header"><div class="pp-title">${progName||'Station'}</div>${fullName?`<div class="pp-subtitle">${fullName}</div>`:''}</div>${narrative}<table class="pp-table">${tableRows}</table>`;
+  return `<div class="pp-header"><div class="pp-title">${progName||'Station'}</div>${fullName?`<div class="pp-subtitle">${fullName}</div>`:''}</div>${programNoteHtml(progName)}${narrative}<table class="pp-table">${tableRows}</table>`;
 }
 
 function applyFilters() {
@@ -3780,7 +4316,7 @@ function applyFilters() {
     const p = f.properties;
     const params    = getProp(p,'Parameters','parameters');
     const eovGroups = getProp(p,'EOV Groups','EOV.Groups');
-    if(selectedParams.length>0 && !selectedParams.some(sp=>params.includes(sp))) return false;
+    if(selectedParams.length>0 && !selectedParams.some(sp=>hasParam(params, sp))) return false;
     if(selectedEovs.length>0   && !selectedEovs.some(ev=>eovGroups.includes(ev))) return false;
     return true;
   });
@@ -3857,20 +4393,25 @@ function applyDischargerFilters() {
 }
   
 function zoomToResults() {
-  if(currentFiltered.length===0) return;
+  // Fit the program hexes shown, plus the discharger sites shown (if that layer is on)
+  const bounds=L.latLngBounds([]);
   const vis=currentFiltered.filter(f=>visiblePrograms.has(normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'')));
-  if(vis.length===0) return;
-  const bounds=L.geoJSON({type:'FeatureCollection',features:vis}).getBounds();
+  if(vis.length>0) bounds.extend(L.geoJSON({type:'FeatureCollection',features:vis}).getBounds());
+  if(map.hasLayer(dischargerLayer)) dischargerLayer.eachLayer(l=>{ if(l.getBounds) bounds.extend(l.getBounds()); });
   if(bounds.isValid()) map.fitBounds(bounds,{padding:[40,40]});
 }
 function resetFilters() {
   clearDropdown('prog'); clearDropdown('param'); clearDropdown('eov');
-  clearDropdown('dname'); clearDropdown('dparam');
+  clearDropdown('dname'); clearDropdown('dparam'); clearDropdown('dtype');   // also redraws dischargers
+  // Back to the default programs; the gaps card goes back to counting all programs
+  const hexProgs = legendProgramNames();
   visiblePrograms.clear();
-  allFeatures.forEach(f => {
-    const prog = normalizeProgram(getProp(f.properties,'Program Name','Program.Name')||'');
-    if(prog) visiblePrograms.add(prog);
-  });
+  DEFAULT_PROGRAMS.filter(p => hexProgs.has(p)).forEach(p => visiblePrograms.add(p));
+  gapsOnlySaved = null;
+  if (document.getElementById('gaps-toggle').checked) {   // Gaps on: back to gap cells only, counting all programs
+    visiblePrograms.clear();
+    gapsAllKey = progSetKey(visiblePrograms);
+  }
   if (allWeaHexFeatures.length > 0) {
     visibleWEAPrograms = new Set(
       allWeaHexFeatures.map(f =>
@@ -3898,6 +4439,7 @@ function updateStatus(count) {
   if (document.getElementById('mpa-toggle') && document.getElementById('mpa-toggle').checked) total += mpaVisibleHexCount;
   if (document.getElementById('nms-toggle') && document.getElementById('nms-toggle').checked) total += nmsVisibleHexCount;
   document.getElementById('status').textContent = `Showing ${total} hex cells`;
+  recomputeLiveGaps();
 }
 function countVisible() {
   return currentFiltered.filter(f =>
@@ -3914,6 +4456,7 @@ function syncProgDropdown() {
   if(checked.length === 0) label.textContent = 'All Programs';
   else if(checked.length === 1) label.textContent = checked[0].value;
   else label.textContent = checked.length + ' selected';
+  label.title = checked.length > 1 ? checked.map(c => c.value).join(', ') : label.textContent;   // full text on hover
   updateParamAvailability();   // legend toggles also narrow the Parameter list
 }
 
@@ -4958,8 +5501,7 @@ function submitFeedback(e) {
 </script>
 
 <button id="help-btn" onclick="document.getElementById('welcome-modal').style.display='flex'"
-  style="position:fixed;bottom:230px;left:0;z-index:9999;background:#1a3a5c;color:white;border:none;border-radius:0 8px 8px 0;width:26px;height:52px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:2px 2px 8px rgba(0,0,0,0.3);display:none;"
-  title="Show help">?</button>
+  style="display:none;" title="Show help">HELP</button>
 
 
 
@@ -4973,6 +5515,16 @@ function submitFeedback(e) {
   function closeWelcome() {
     document.getElementById('welcome-modal').style.display = 'none';
   }
+
+  // HELP sits under the + / − buttons, in the same white box style
+  const helpCtrl = L.control({ position: 'topleft' });
+  helpCtrl.onAdd = function () {
+    const wrap = L.DomUtil.create('div', 'leaflet-bar leaflet-control help-ctrl');
+    wrap.appendChild(document.getElementById('help-btn'));
+    L.DomEvent.disableClickPropagation(wrap);
+    return wrap;
+  };
+  helpCtrl.addTo(map);
 
 
 

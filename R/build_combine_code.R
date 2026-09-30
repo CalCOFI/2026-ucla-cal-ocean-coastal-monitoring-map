@@ -96,19 +96,34 @@ collapse_unique <- function(x, sep = "; ") {
   paste(sort(x), collapse = sep)
 }
 
+# Like collapse_unique, but for "a; b"-style lists: splits them first so a
+# value shared by two chunks is only listed once ("a; b" + "b; c" -> "a; b; c").
+split_collapse <- function(x) collapse_unique(unlist(str_split(x, ";\\s*")))
+
 # =============================================================================
 # COASTAL BUFFER
 # =============================================================================
 
-ca_boundary_path_combine <- file.path(data_dir, "ca_state", "CA_State.shp")
-buffer_meters_combine    <- 13.4 * 1609.34
+# How far offshore the map reaches, measured from the shoreline.
+# (Keep the same value in build_gaps_code.R.)
+ZONE_MILES_FROM_SHORE <- 13.4
 
-ca_buffer_combine <- st_read(ca_boundary_path_combine, quiet = TRUE) %>%
+# CA_State.shp is the Census state boundary, which already extends 3 nautical
+# miles offshore (it includes state waters). So the zone edge is the boundary
+# plus (13.4 miles - 3 nautical miles). Adding the full 13.4 miles to the
+# boundary would reach ~16.9 miles from shore (13.4 + 3.45).
+# build_program_code.R keeps a slightly wider area when it builds each program;
+# the exact cut to this zone happens here, in Step 2 and for transects.
+STATE_WATERS_M <- 3 * 1852
+zone_dist_m    <- ZONE_MILES_FROM_SHORE * 1609.34 - STATE_WATERS_M
+
+ca_boundary_path_combine <- file.path(data_dir, "ca_state", "CA_State.shp")
+coastal_zone_3310 <- st_read(ca_boundary_path_combine, quiet = TRUE) %>%
   st_transform(3310) %>%
   st_union() %>%
-  st_buffer(dist = buffer_meters_combine) %>%
-  st_transform(4326)
-cat("Coastal buffer ready.\n")
+  st_buffer(dist = zone_dist_m)
+ca_buffer_combine <- st_transform(coastal_zone_3310, 4326)
+cat("Coastal zone ready:", ZONE_MILES_FROM_SHORE, "miles from shore.\n")
 
 # =============================================================================
 # STEP 1 — CHUNK COMBINE
@@ -221,18 +236,19 @@ if (length(chunk_folders) == 0) {
           `Program Name`       = first(na.omit(`Program Name`)),
           `Full Program Name`  = first(na.omit(`Full Program Name`)),
           `Monitoring Program` = first(na.omit(`Monitoring Program`)),
-          `Frequency`          = collapse_unique(Frequency),
-          `Platform`           = collapse_unique(Platform),
+          `Frequency`          = split_collapse(Frequency),
+          `Platform`           = split_collapse(Platform),
           `First Year`         = suppressWarnings(min(as.numeric(`First Year`),    na.rm = TRUE)),
           `Last Year`          = suppressWarnings(max(as.numeric(`Last Year`),     na.rm = TRUE)),
           `Gebco Mean Depth`   = suppressWarnings(mean(as.numeric(`Gebco Mean Depth`), na.rm = TRUE)),
           `Years Sampled`      = suppressWarnings(max(as.numeric(`Years Sampled`), na.rm = TRUE)),
           `Depth Range (m)`    = collapse_unique(`Depth Range (m)`),
           `Sample Locations`   = suppressWarnings(sum(as.numeric(`Sample Locations`), na.rm = TRUE)),
-          `Parameters`         = collapse_unique(Parameters),
-          `EOV Groups`         = collapse_unique(`EOV Groups`),
-          `Parameter Count`    = suppressWarnings(max(as.numeric(`Parameter Count`), na.rm = TRUE)),
-          `Source Files`       = if ("Source Files" %in% names(pick(everything()))) collapse_unique(`Source Files`) else NA_character_,
+          `Parameters`         = split_collapse(Parameters),
+          `EOV Groups`         = split_collapse(`EOV Groups`),
+          # count the merged list (the max of the chunks' counts undercounts)
+          `Parameter Count`    = if (is.na(Parameters)) 0 else str_count(Parameters, ";") + 1,
+          `Source Files`       = if ("Source Files" %in% names(pick(everything()))) split_collapse(`Source Files`) else NA_character_,
           across(all_of(all_param_cols), ~ max(.x, na.rm = TRUE)),
           .groups = "drop"
         ) %>%
@@ -281,10 +297,54 @@ if (length(chunk_folders) == 0) {
       if (length(wea_exist) == 1) {
         file.copy(wea_exist, out_wea, overwrite = TRUE)
       } else {
-        map(wea_exist, st_read, quiet = TRUE) %>%
+        # Chunks share the same WEA hex grid, so the same hex can appear in
+        # several chunks. Merge those into one hex (same idea as the main
+        # chunk merge above) instead of stacking duplicate hexes.
+        wea_all <- map(wea_exist, st_read, quiet = TRUE) %>%
           map(~ .x %>% mutate(across(-geometry, ~ as.character(.x)))) %>%
           bind_rows() %>%
-          suppressWarnings(st_write(out_wea, delete_dsn = TRUE, quiet = TRUE))
+          rename_with(~ str_replace_all(.x, "\\.", " "), everything()) %>%
+          rename_with(~ str_replace(.x, "Depth Range  m ", "Depth Range (m)"), everything())
+
+        num <- function(x) suppressWarnings(as.numeric(x))
+
+        wea_df <- wea_all %>%
+          st_drop_geometry() %>%
+          group_by(`Centroid Latitude`, `Centroid Longitude`) %>%
+          summarise(
+            `Program Name`       = first(na.omit(`Program Name`)),
+            `Full Program Name`  = first(na.omit(`Full Program Name`)),
+            `Monitoring Program` = first(na.omit(`Monitoring Program`)),
+            `Parameters`         = split_collapse(Parameters),
+            `EOV Groups`         = split_collapse(`EOV Groups`),
+            `First Year`         = suppressWarnings(min(num(`First Year`), na.rm = TRUE)),
+            `Last Year`          = suppressWarnings(max(num(`Last Year`),  na.rm = TRUE)),
+            `Frequency`          = split_collapse(Frequency),
+            `Platform`           = split_collapse(Platform),
+            `Geometry Types`     = split_collapse(`Geometry Types`),
+            `Depth Range (m)`    = collapse_unique(`Depth Range (m)`),
+            `Sample Locations`   = sum(num(`Sample Locations`), na.rm = TRUE),
+            `Gebco Mean Depth`   = mean(num(`Gebco Mean Depth`), na.rm = TRUE),
+            `Source Files`       = split_collapse(`Source Files`),
+            .groups = "drop"
+          ) %>%
+          mutate(
+            `First Year`       = na_if(`First Year`,  Inf),
+            `Last Year`        = na_if(`Last Year`,  -Inf),
+            `Years Sampled`    = `Last Year` - `First Year` + 1,
+            `Parameter Count`  = if_else(is.na(Parameters), 0, str_count(Parameters, ";") + 1),
+            `Gebco Mean Depth` = na_if(`Gebco Mean Depth`, NaN)
+          )
+
+        wea_merged <- wea_all %>%
+          select(`Centroid Latitude`, `Centroid Longitude`, geometry) %>%
+          distinct(`Centroid Latitude`, `Centroid Longitude`, .keep_all = TRUE) %>%
+          left_join(wea_df, by = c("Centroid Latitude", "Centroid Longitude")) %>%
+          select(any_of(names(wea_all))) %>%   # keep the original column order
+          st_as_sf()
+        suppressWarnings(st_write(wea_merged, out_wea, delete_dsn = TRUE, quiet = TRUE))
+        cat("  [", res, "] WEA hexes merged: ", nrow(wea_all), " chunk rows -> ",
+            nrow(wea_merged), " hexes\n", sep = "")
       }
       cat("  [", res, "] WEA hexes promoted →", basename(out_wea), "\n", sep = "")
     }
@@ -370,7 +430,13 @@ for (res in HEX_RESOLUTIONS) {
   
   combined_sf <- combined_sf %>%
     mutate(across(where(is.numeric), ~ ifelse(is.infinite(.x) | is.nan(.x), NA, .x)))
-  
+
+  # Drop hexes whose centre is beyond the coastal zone (see COASTAL BUFFER)
+  hex_centres <- st_centroid(st_geometry(st_transform(combined_sf, 3310)))
+  in_zone     <- lengths(st_intersects(hex_centres, coastal_zone_3310)) > 0
+  cat("Hexes beyond", ZONE_MILES_FROM_SHORE, "miles from shore (dropped):", sum(!in_zone), "\n")
+  combined_sf <- combined_sf[in_zone, ]
+
   cat("Total rows:", nrow(combined_sf), "\n")
   cat("Programs:", paste(unique(combined_sf$`Program Name`), collapse = ", "), "\n")
   
@@ -430,7 +496,7 @@ if (length(polygon_files) > 0) {
     st_make_valid()
   
   poly_out <- file.path(output_root, "Master_Polygons.geojson")
-  poly_tmp <- file.path(tempdir(), "Master_Polygons_tmp.geojson")
+  poly_tmp <- file.path(tempdir(check = TRUE), "Master_Polygons_tmp.geojson")
   
   # Write to a temp file first, then copy to final destination — avoids
   # leaving a half-written file if something goes wrong mid-write
@@ -454,9 +520,6 @@ if (length(polygon_files) > 0) {
 
 cat("\nCombining transects...\n")
 
-ca_boundary_path <- file.path(data_dir, "ca_state", "CA_State.shp")
-buffer_meters    <- 13.4 * 1609.34
-
 transect_files <- list.files(output_root, pattern = "^transects\\.csv$",
                              full.names = TRUE, recursive = TRUE) %>%
   { gsub("\\\\", "/", .) } %>%
@@ -466,11 +529,7 @@ transect_files <- list.files(output_root, pattern = "^transects\\.csv$",
 
 if (length(transect_files) > 0) {
   
-  ca_buffer <- st_read(ca_boundary_path, quiet = TRUE) %>%
-    st_transform(3310) %>%
-    st_union() %>%
-    st_buffer(dist = buffer_meters) %>%
-    st_transform(4326)
+  ca_buffer <- ca_buffer_combine   # same coastal zone as the hexes
   
   all_transects <- map_dfr(transect_files, read_csv, show_col_types = FALSE,
                            col_types = cols(.default = col_character())) %>%
@@ -540,7 +599,12 @@ for (res in HEX_RESOLUTIONS) {
                           pattern = paste0("_wea_", res, "\\.geojson$"),
                           full.names = TRUE, recursive = TRUE) %>%
     { gsub("\\\\", "/", .) } %>%
-    .[!str_detect(., regex("Master_", ignore_case = TRUE))]
+    .[!str_detect(., regex("Master_", ignore_case = TRUE))] %>%
+    .[!str_detect(., regex("/chunks/", ignore_case = TRUE))] %>%
+    # Skip chunk subfolders like CalCOFI1, CalCOFI2: Step 1 already merged
+    # their WEA hexes into one <Program>_wea_<res>.geojson per program, so
+    # reading both would count every chunked program's WEA hexes twice.
+    .[!str_detect(basename(dirname(.)), "[_ ]?\\d+$")]
   
   if (length(wea_files) == 0) {
     cat("No WEA files for", res, "\n")
