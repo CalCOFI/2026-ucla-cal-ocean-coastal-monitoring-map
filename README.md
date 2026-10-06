@@ -125,7 +125,7 @@ Run `remove_inland_hexes.R`. It removes hexes more than `INLAND_MAX_KM` (10 km) 
 Run `build_asbs_layer.R` and `build_mpa_nms_layer.R`. They clip the Master Inventory hexes to those boundaries, so rerun them whenever Steps 3 or 4 change the Master Inventory.
 
 ### Step 6 — Build gap layer (optional)
-Run `build_gaps_code.R` (after Steps 3–5) to generate `monitoring_gaps.geojson.gz`, `monitoring_gap_zone.geojson.gz` (lets the map recount gaps for the programs checked) and `gap_stats.json`. Gaps use 1 km cells on every map view (1 km allows for boat drift around a sampling location). The total area is the ocean (GEBCO elevation below 0 m) within 13.4 miles of shore, in US waters, excluding San Francisco Bay and the Delta. A cell counts as monitored only if a 1 km program hex sits on it (same grid as the programs).
+Run `build_gaps_code.R` (after Steps 3–5) to generate `monitoring_gaps.geojson.gz`, `monitoring_gap_zone.geojson.gz` (lets the map recount gaps for the programs and parameters checked) and `gap_stats.json`. Gaps use 1 km cells on every map view (1 km allows for boat drift around a sampling location). The total area is the ocean (GEBCO elevation below 0 m) within 13.4 miles of shore, in US waters, excluding San Francisco Bay and the Delta. A cell counts as monitored only if a 1 km program hex sits on it (same grid as the programs).
 
 The build scripts write their outputs into `web/` (the published folder). When adding a
 new program/discharger/gap layer, regenerate the affected files into `web/`.

@@ -20,6 +20,13 @@
 #        - not in San Francisco Bay / the Delta (inland estuary; left out).
 #      These cells are the total area.
 #   3. A cell is monitored if a 1 km program hex is on it; the rest are gaps.
+#   4. For each monitored cell, keep which parameters each program measured
+#      there, so the map can show gaps for one parameter or a group of them.
+#   5. Flag cells in state waters (s = 1: centre inside CA_State.shp, which
+#      reaches 3 nm offshore), so the map can show gaps for 0-3 nm vs beyond.
+#   6. Add 1 km cells for the Wind Energy Areas (they sit outside the coastal
+#      zone): z = 0, w = area name. The map counts them only when "Wind Energy
+#      Areas" is picked, so the coastal zone totals don't change.
 #
 # INPUTS:
 #   - Master_Inventory_1km.geojson (from build_combine_code.R)
@@ -29,9 +36,10 @@
 # OUTPUTS (in MONITORING_OUTPUTS_DIR, and copied into the repo's web/ folder
 # automatically; see WEB FOLDER below):
 #   - monitoring_gaps.geojson.gz      gap cells (compressed; the map's fallback)
-#   - monitoring_gap_zone.geojson.gz  every zone cell with the programs on it
-#                                     (compressed; the map recounts gaps from
-#                                     this for whichever programs are switched on)
+#   - monitoring_gap_zone.geojson.gz  every zone cell with the programs on it and
+#                                     the parameters each one measured there
+#                                     (compressed; the map recounts gaps from this
+#                                     for the programs and parameters switched on)
 #   - gap_stats.json                  stats shown on the map
 #   - monitoring_gaps_statistics.csv  same stats as a table
 #
@@ -196,7 +204,9 @@ for (res in names(HEX_SIZES_M)) {
         paste(unique(as.character(st_geometry_type(master[no_name, ]))), collapse = ", "),
         ". Rerun build_combine_code.R if this is unexpected.\n", sep = "")
   }
-  master <- master[!no_name, prog_col] %>% st_transform(3310)
+  param_col <- grep("^Parameters$", names(master), value = TRUE)[1]
+  if (is.na(param_col)) stop("No Parameters column in ", basename(master_path), call. = FALSE)
+  master <- master[!no_name, c(prog_col, param_col)] %>% st_transform(3310)
 
   # 1. Program hex grid, limited to cells centred in the coastal zone
   grid    <- st_make_grid(coastal_zone, cellsize = HEX_SIZES_M[[res]],
@@ -207,11 +217,21 @@ for (res in names(HEX_SIZES_M)) {
   prog_ctr <- st_centroid(st_geometry(master)[seq_len(min(500, nrow(master)))])
   grid_ctr <- st_centroid(grid)
   nearest  <- st_nearest_feature(prog_ctr, grid_ctr)
-  shift    <- apply(st_coordinates(prog_ctr) - st_coordinates(grid_ctr[nearest]), 2, median)
+  offsets  <- st_coordinates(prog_ctr) - st_coordinates(grid_ctr[nearest])
+  # Use the single most common offset. (Taking the median of x and y separately
+  # can mix two equally near cells, +500 m and -500 m, and leave the gap grid
+  # half a cell off the program hexes.)
+  key      <- paste(round(offsets[, 1]), round(offsets[, 2]))
+  shift    <- offsets[match(names(which.max(table(key))), key), ]
   if (any(abs(shift) > 0.5)) {
-    grid <- st_sfc(st_geometry(grid) + shift, crs = 3310)
+    grid     <- st_sfc(st_geometry(grid) + shift, crs = 3310)
+    grid_ctr <- st_sfc(st_geometry(grid_ctr) + shift, crs = 3310)
     cat(sprintf("Moved gap grid by (%.0f m, %.0f m) to line up with the program hexes\n", shift[1], shift[2]))
   }
+  # Check: program hex centres should now sit exactly on gap cell centres
+  off_by <- as.numeric(st_distance(prog_ctr, grid_ctr[st_nearest_feature(prog_ctr, grid_ctr)], by_element = TRUE))
+  if (median(off_by) > 1)
+    stop(sprintf("Gap grid is %.0f m off the program hexes; check PROGRAM_BUFFER_MILES.", median(off_by)), call. = FALSE)
   centres <- st_centroid(grid)
   in_zone <- lengths(st_intersects(centres, coastal_zone)) > 0
   grid    <- grid[in_zone]
@@ -228,6 +248,8 @@ for (res in names(HEX_SIZES_M)) {
   grid    <- grid[keep]
   centres <- centres[keep]
   lat     <- ll[keep, 2]
+  # state waters = centre inside CA_State.shp (it already reaches 3 nm offshore)
+  in_state <- lengths(st_intersects(centres, ca_boundary)) > 0
 
   # 3. Monitored = a program hex of the same size is on the cell
   hits      <- st_intersects(centres, master)
@@ -259,18 +281,88 @@ for (res in names(HEX_SIZES_M)) {
                 overwrite = TRUE, remove = FALSE)
 
   # ---- every zone cell, with the programs on it, so the map can recount gaps
-  #      for just the programs switched on in the legend
+  #      for just the programs and parameters switched on
   #      r = region 1-4 (north to south), a = cell area km², p = programs ("" = gap)
-  region_num <- c("North Coast" = 1, "Bay Area / Central" = 2, "Central Coast" = 3, "Southern CA" = 4)
-  prog_names <- as.character(master[[prog_col]])
-  cell_progs <- vapply(hits, function(i) paste(sort(unique(na.omit(prog_names[i]))), collapse = ";"), character(1))
+  #      q = parameters each program measured on the cell, in the same order as p:
+  #          programs split by "|", parameters by ";"
+  #          e.g. p = "CalCOFI;SCCOOS", q = "Salinity;Temperature|Chlorophyll-a;Temperature"
+  #      s = 1 in state waters (0-3 nm), 0 beyond
+  #      z = 1 coastal zone cell; 0 = Wind Energy Area cell outside the zone (w = its name)
+  region_num  <- c("North Coast" = 1, "Bay Area / Central" = 2, "Central Coast" = 3, "Southern CA" = 4)
+  # p and q for each cell from the program hexes on it
+  cell_pq <- function(hits, prog_names, prog_params) {
+    cp <- character(length(hits)); cq <- character(length(hits))
+    for (k in which(lengths(hits) > 0)) {
+      i     <- hits[[k]]
+      progs <- sort(unique(prog_names[i]))
+      cp[k] <- paste(progs, collapse = ";")
+      cq[k] <- paste(vapply(progs, function(pr) {
+        x <- trimws(unlist(prog_params[i[prog_names[i] == pr]]))
+        paste(sort(unique(x[!is.na(x) & x != ""])), collapse = ";")
+      }, character(1)), collapse = "|")
+    }
+    list(p = cp, q = cq)
+  }
+  prog_names  <- as.character(master[[prog_col]])
+  prog_params <- strsplit(as.character(master[[param_col]]), ";")   # one list of names per program hex
+  if (any(grepl("|", unlist(prog_params), fixed = TRUE)))
+    stop("A parameter name contains '|', which the zone file uses as a separator.", call. = FALSE)
+  pq <- cell_pq(hits, prog_names, prog_params)
+  cell_progs  <- pq$p
+  cell_params <- pq$q
   # every monitored cell must name at least one program, or the map would show it as a gap
   if (sum(cell_progs != "") != sum(monitored))
     stop("Zone export: ", sum(monitored), " monitored cells but only ", sum(cell_progs != ""),
          " have program names. Check the '", prog_col, "' column.", call. = FALSE)
+  no_params <- sum(cell_progs != "" & gsub("|", "", cell_params, fixed = TRUE) == "")
+  if (no_params > 0)
+    cat("Note:", no_params, "monitored cells have no parameters listed; they count as monitored",
+        "only when no parameter is checked on the map.\n")
   zone_sf <- st_sf(r = unname(region_num[region_of(lat)]), a = round(cell_km2, 4),
-                   p = cell_progs, geometry = grid) %>%
+                   p = cell_progs, q = cell_params, s = as.integer(in_state), z = 1L, w = "",
+                   geometry = grid) %>%
     st_transform(4326)
+
+  # ---- Wind Energy Area cells (outside the coastal zone, so added separately)
+  wea_shp    <- file.path(output_root, "WEA", "CA_Wind.shp")
+  wea_master <- file.path(output_root, paste0("Master_WEA_", res, ".geojson"))
+  if (file.exists(wea_shp)) {
+    wea_area <- st_read(wea_shp, quiet = TRUE) %>% st_transform(3310) %>% st_make_valid() %>% st_union()
+    # Start the grid just south-west of the WEAs but on the same lattice as the
+    # program hexes (a pointy-top hex grid repeats every cellsize across and
+    # every sqrt(3) * cellsize up), so WEA cells sit exactly on program hexes.
+    size   <- HEX_SIZES_M[[res]]
+    wbb    <- st_bbox(wea_area)
+    period <- c(size, sqrt(3) * size)
+    w_corner <- grid_corner + floor((c(wbb[["xmin"]], wbb[["ymin"]]) - grid_corner) / period) * period - period
+    wgrid  <- st_make_grid(wea_area, cellsize = size, square = FALSE, offset = w_corner)
+    if (any(abs(shift) > 0.5)) wgrid <- st_sfc(st_geometry(wgrid) + shift, crs = 3310)
+    wctr   <- st_centroid(wgrid)
+    in_wea <- lengths(st_intersects(wctr, wea_area)) > 0
+    wgrid  <- wgrid[in_wea]
+    wctr   <- wctr[in_wea]
+    wlat   <- st_coordinates(st_transform(wctr, 4326))[, 2]
+    wp <- character(length(wgrid)); wq <- character(length(wgrid))
+    if (file.exists(wea_master)) {
+      wm   <- st_read(wea_master, quiet = TRUE)
+      wpc  <- grep("^Program[ ._]?Name$", names(wm), value = TRUE)[1]
+      wqc  <- grep("^Parameters$", names(wm), value = TRUE)[1]
+      wm   <- wm[!is.na(wm[[wpc]]) & trimws(as.character(wm[[wpc]])) != "", c(wpc, wqc)] %>% st_transform(3310)
+      wpq  <- cell_pq(st_intersects(wctr, wm), as.character(wm[[wpc]]), strsplit(as.character(wm[[wqc]]), ";"))
+      wp <- wpq$p; wq <- wpq$q
+    } else {
+      cat("Note: ", basename(wea_master), " not found, so every Wind Energy Area cell counts as a gap.\n", sep = "")
+    }
+    wea_sf <- st_sf(r = unname(region_num[region_of(wlat)]), a = round(cell_km2, 4), p = wp, q = wq,
+                    s = 0L, z = 0L,
+                    w = ifelse(wlat > 38, "Humboldt Wind Energy Area", "Morro Bay Wind Energy Area"),
+                    geometry = wgrid) %>%
+      st_transform(4326)
+    cat("Wind Energy Area cells: ", length(wgrid), " (", sum(wp != ""), " monitored)\n", sep = "")
+    zone_sf <- rbind(zone_sf, wea_sf)
+  } else {
+    cat("Note: WEA/CA_Wind.shp not found in MONITORING_OUTPUTS_DIR; no Wind Energy Area cells added.\n")
+  }
   # Named without "_1km" and kept only as .gz, so build_combine_code.R never
   # mistakes it for a program output and merges it into the Master Inventory
   zone_path <- file.path(output_root, "monitoring_gap_zone.geojson")
@@ -281,7 +373,8 @@ for (res in names(HEX_SIZES_M)) {
   # clean up the old name from earlier runs
   old_zone <- file.path(output_root, c("monitoring_zone_1km.geojson", "monitoring_zone_1km.geojson.gz"))
   invisible(file.remove(old_zone[file.exists(old_zone)]))
-  cat("Zone cells for the live map: ", length(grid), " (", basename(zone_path), ".gz)\n", sep = "")
+  cat("Zone cells for the live map: ", length(grid), " (", sum(in_state), " in state waters), plus ",
+      nrow(zone_sf) - length(grid), " Wind Energy Area cells (", basename(zone_path), ".gz)\n", sep = "")
 
   # ---- stats shown on the map
   region_pct <- function(r) {
