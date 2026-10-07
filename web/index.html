@@ -40,6 +40,11 @@
 <title>California Ocean &amp; Coastal Monitoring</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- CARTO basemaps (?basemap=positron|voyager) draw CARTO's vector GL styles inside Leaflet:
+     its raster tiles now need an API key, its GL styles do not -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css"/>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
 <script src="https://unpkg.com/georaster"></script>
 <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
@@ -1298,6 +1303,10 @@
   .leaflet-right .help-ctrl { margin-right: 0 !important; margin-top: 16px !important; }
   #help-btn:hover { background: #2a6496; }
   .leaflet-bar.help-ctrl, .leaflet-touch .leaflet-bar.help-ctrl { border: none; box-shadow: none; border-radius: 6px 0 0 6px; }
+
+  /* CARTO vector basemap containers (maplibre-gl-leaflet): maplibre-gl.css makes .maplibregl-map
+     position: relative, so the labels layer would flow below the base, outside the map */
+  .leaflet-pane > .leaflet-gl-layer.maplibregl-map { position: absolute; left: 0; top: 0; }
 </style>
 </head>
 <body>
@@ -2378,16 +2387,21 @@ map.getPane('polygonPane').style.zIndex = 200;
 // Default: OpenStreetMap. Other options can be previewed with ?basemap=<key>
 // (web/basemap-preview.html shows them side by side). Where a basemap has a
 // separate labels layer, labels are drawn above the hexes so names stay readable.
+// CARTO's raster tiles now answer every request with an "API KEY REQUIRED" watermark,
+// so positron and voyager draw CARTO's vector GL styles (no key) with maplibre-gl-leaflet:
+// the base is the -nolabels style, the labels the full style with every non-symbol layer
+// hidden.
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+const CARTO_GL = 'https://basemaps.cartocdn.com/gl/';
 const BASEMAPS = {
   osm:      { base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
               attribution: '&copy; OpenStreetMap contributors' },
-  positron: { base: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
-              labels: 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
-              subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO' },
-  voyager:  { base: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
-              labels: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
-              subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO' },
+  positron: { gl: true, base: CARTO_GL + 'positron-nolabels-gl-style/style.json',
+              labels: CARTO_GL + 'positron-gl-style/style.json',
+              attribution: '&copy; OpenStreetMap contributors &copy; CARTO' },
+  voyager:  { gl: true, base: CARTO_GL + 'voyager-nolabels-gl-style/style.json',
+              labels: CARTO_GL + 'voyager-gl-style/style.json',
+              attribution: '&copy; OpenStreetMap contributors &copy; CARTO' },
   ocean:    { base: ESRI + 'Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
               labels: ESRI + 'Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 13,
               attribution: 'Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri' },
@@ -2412,12 +2426,32 @@ const basemapKey = new URLSearchParams(location.search).get('basemap');
 const basemap = BASEMAPS[basemapKey] || BASEMAPS.osm;
 const tileOpts = { attribution: basemap.attribution, subdomains: basemap.subdomains ?? 'abc' };
 if (basemap.maxNativeZoom) tileOpts.maxNativeZoom = basemap.maxNativeZoom;
-L.tileLayer(basemap.base, tileOpts).addTo(map);
+// a vector GL basemap layer (CARTO), or a raster tile layer (everything else)
+const basemapLayer = (url, opts) => basemap.gl
+  ? L.maplibreGL({ style: url, interactive: false, attribution: opts.attribution,
+                   pane: opts.pane || 'tilePane' })
+  : L.tileLayer(url, opts);
+// labels-only: hide every non-symbol layer of the full style; on style.load, not
+// styledata, which setLayoutProperty() itself fires
+function hideNonSymbolLayers(gl) {
+  (gl.getStyle().layers || []).forEach(ly => {
+    if (ly.type !== 'symbol' && (ly.layout || {}).visibility !== 'none')
+      gl.setLayoutProperty(ly.id, 'visibility', 'none');
+  });
+}
+basemapLayer(basemap.base, tileOpts).addTo(map);
+// a GL layer sets no zoom bound on the map (a raster tile layer sets 18); cap it the same
+if (basemap.gl) map.setMaxZoom(18);
 if (basemap.labels) {
   map.createPane('labelPane');
   map.getPane('labelPane').style.zIndex = 650;          // above hexes (400) and markers (600)
   map.getPane('labelPane').style.pointerEvents = 'none';
-  L.tileLayer(basemap.labels, Object.assign({}, tileOpts, { pane: 'labelPane', attribution: '' })).addTo(map);
+  const labels = basemapLayer(basemap.labels, Object.assign({}, tileOpts, { pane: 'labelPane', attribution: '' })).addTo(map);
+  if (basemap.gl) {
+    const gl = labels.getMaplibreMap();
+    if (gl.isStyleLoaded()) hideNonSymbolLayers(gl);
+    gl.on('style.load', () => hideNonSymbolLayers(gl));
+  }
 }
 
 const programColors   = {};
