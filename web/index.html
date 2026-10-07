@@ -2440,6 +2440,8 @@ function hideNonSymbolLayers(gl) {
   });
 }
 basemapLayer(basemap.base, tileOpts).addTo(map);
+// a GL layer sets no zoom bound on the map (a raster tile layer sets 18); cap it the same
+if (basemap.gl) map.setMaxZoom(18);
 if (basemap.labels) {
   map.createPane('labelPane');
   map.getPane('labelPane').style.zIndex = 650;          // above hexes (400) and markers (600)
