@@ -1,6 +1,6 @@
 # California Ocean & Coastal Monitoring Inventory
 
-An interactive Leaflet map of California ocean and coastal monitoring programs within 12 nautical miles of the coast. Displays monitoring coverage as hex grid cells at 1/3/5 km resolutions, survey transects, discharger/WWTP stations, monitoring gaps, and wind energy area overlays.
+An interactive Leaflet map of California ocean and coastal monitoring programs within about 13 miles of the coast (13.4 statute miles, `ZONE_MILES_FROM_SHORE`; California state waters reach 3 nautical miles). Displays monitoring coverage as hex grid cells at 1/3/5 km resolutions, survey transects, discharger/WWTP stations, monitoring gaps, and wind energy area overlays.
 
 ---
 
@@ -161,7 +161,7 @@ Because all data fetches are relative, the same `web/` folder also works unchang
 - **Transects** — survey cruise track lines colored per program
 - **Dischargers** — WWTP/ocean discharger stations with filter panel, colored per facility
 - **Bathymetry** — optional GEBCO 2025 seafloor depth layer with depth zone scale bar
-- **Monitoring Gaps** — unmonitored hex cells within the 12 nmi coastal buffer with regional coverage statistics
+- **Monitoring Gaps** — unmonitored hex cells within about 13 miles of the coast with regional coverage statistics
 - **Wind Energy Areas** — BOEM-designated offshore wind areas (Humboldt, Morro Bay) with per-program hex overlays
 - **Polygon overlays** — program zone boundaries, Channel Islands polygons, CA MPAs
 - **Popups** — parameters, frequency, platform, depth range, GEBCO seafloor depth, coordinates, program overlap

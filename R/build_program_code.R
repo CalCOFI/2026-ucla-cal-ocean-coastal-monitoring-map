@@ -3000,7 +3000,7 @@ for (hex_resolution in HEX_RESOLUTIONS) {
 <body>
 <div id="map"></div>
 <div id="disclaimer">
-  \u26a0\ufe0f This inventory reflects monitoring within 12 nautical miles of the CA coast \u2014 it does not include all offshore programs.
+  \u26a0\ufe0f This inventory reflects monitoring within about 13 miles of the CA coast \u2014 it does not include all offshore programs.
 </div>
 <div id="res-badge">Grid: ', hex_resolution, '</div>
 <script>
